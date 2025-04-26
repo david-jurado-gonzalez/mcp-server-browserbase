@@ -30,6 +30,7 @@ const StagehandConfig: ConstructorParams = {
     },
   },
   localBrowserLaunchOptions: {
+    // cdpUrl: "http://localhost:9223",
     viewport: {
       width: 1024,
       height: 768,

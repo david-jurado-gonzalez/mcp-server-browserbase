@@ -8,38 +8,39 @@ import { PROMPTS, getPrompt } from "./prompts.js";
 import { listResources, listResourceTemplates, readResource, } from "./resources.js";
 // Define Stagehand configuration
 export const stagehandConfig = {
-    env: process.env.BROWSERBASE_API_KEY && process.env.BROWSERBASE_PROJECT_ID
-        ? "BROWSERBASE"
-        : "LOCAL",
+    verbose: 1 /* Verbosity level for logging: 0 = silent, 1 = info, 2 = all */,
+    domSettleTimeoutMs: 30_000 /* Timeout for DOM to settle in milliseconds */,
+
+    // LLM configuration
+    modelName: "gemini-2.0-flash" /* Name of the model to use */,
+    modelClientOptions: {
+        apiKey: process.env.GOOGLE_API_KEY,
+    } /* Configuration options for the model client */,
+
+    // Browser configuration
+    env: "LOCAL" /* Environment to run in: LOCAL or BROWSERBASE */,
     apiKey: process.env.BROWSERBASE_API_KEY /* API key for authentication */,
     projectId: process.env.BROWSERBASE_PROJECT_ID /* Project identifier */,
     logger: (message) => console.error(logLineToString(message)) /* Custom logging function to stderr */,
-    domSettleTimeoutMs: 30_000 /* Timeout for DOM to settle in milliseconds */,
-    browserbaseSessionCreateParams: process.env.BROWSERBASE_API_KEY && process.env.BROWSERBASE_PROJECT_ID
-        ? {
-            projectId: process.env.BROWSERBASE_PROJECT_ID,
-            browserSettings: process.env.CONTEXT_ID
-                ? {
-                    context: {
-                        id: process.env.CONTEXT_ID,
-                        persist: true,
-                    },
-                }
-                : undefined,
-        }
-        : undefined,
-    localBrowserLaunchOptions: process.env.LOCAL_CDP_URL
-        ? {
-            cdpUrl: process.env.LOCAL_CDP_URL,
-        }
-        : undefined,
     enableCaching: true /* Enable caching functionality */,
     browserbaseSessionID: undefined /* Session ID for resuming Browserbase sessions */,
-    modelName: "gpt-4o" /* Name of the model to use */,
-    modelClientOptions: {
-        apiKey: process.env.OPENAI_API_KEY,
-    } /* Configuration options for the model client */,
-    useAPI: false,
+    browserbaseSessionCreateParams: {
+        projectId: process.env.BROWSERBASE_PROJECT_ID,
+        browserSettings: {
+            blockAds: true,
+            viewport: {
+                width: 1024,
+                height: 768,
+            },
+        },
+    },
+    localBrowserLaunchOptions: {
+        cdpUrl: process.env.LOCAL_CDP_URL,
+        viewport: {
+            width: 1024,
+            height: 768,
+        },
+    } /* Configuration options for the local browser */,
 };
 // Global state
 let stagehand;
