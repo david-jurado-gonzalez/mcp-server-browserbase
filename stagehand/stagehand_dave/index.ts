@@ -19,6 +19,8 @@ import { z } from "zod";
  * - https://zod.dev/
  * - https://docs.browserbase.com/
  * - https://playwright.dev/docs/intro
+ * 
+ * npm run start
  */
 async function main({
   page,
