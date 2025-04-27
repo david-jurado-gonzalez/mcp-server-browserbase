@@ -42,10 +42,32 @@ export const TOOLS: Tool[] = [
           description: `Variables used in the action template. ONLY use variables if you're dealing 
             with sensitive data or dynamic content. For example, if you're logging in to a website, 
             you can use a variable for the password. When using variables, you MUST have the variable
-            key in the action template. For example: {"action": "Fill in the password", "variables": {"password": "123456"}}`,
+            key in the action template. For example: {"action": "Fill in the %username% into the username field", "variables": {"username": "dave_jury"}}`,
         },
       },
       required: ["action"],
+    },
+  },
+  {
+    name: "stagehand_cachedact",
+    description: `Performs an action on a web page element previously cached with an observation.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        description: {
+          type: "string",
+          description: `References the UI element the cached action will use. For example: "The quickstart link" or "textbox: Username" or "button: Submit" or "link: Sign in".`,
+        },
+        action: {
+          type: "string",
+          description: `The verb. For example: "click", "type", "scroll", "select", "drag", "drop".`,
+        },
+        selector: {
+          type: "string",
+          description: `The path returned from an observation. For example: /html/body/div[1]/div[1]/a`,
+        },
+      },
+      required: ["selector", "description"],
     },
   },
   {
@@ -59,14 +81,14 @@ export const TOOLS: Tool[] = [
   {
     name: "stagehand_observe",
     description:
-      "Observes elements on the web page. Use this tool to observe elements that you can later use in an action. Use observe instead of extract when dealing with actionable (interactable) elements rather than text. More often than not, you'll want to use extract instead of observe when dealing with scraping or extracting structured text.",
+      "Observe lets you preview an action before taking it. If you are satisfied with the action preview, you can run it using the cached action with the apropriate selector and description. Use observe instead of extract when dealing with actionable (interactable) elements rather than text. More often than not, you'll want to use extract instead of observe when dealing with scraping or extracting structured text.",
     inputSchema: {
       type: "object",
       properties: {
         instruction: {
           type: "string",
           description:
-            "Instruction for observation (e.g., 'find the login button'). This instruction must be extremely specific.",
+            "Instruction for observation (e.g., 'Click the quickstart link'). This instruction must be extremely specific.",
         },
       },
       required: ["instruction"],
@@ -117,6 +139,29 @@ export async function handleToolCall(
         });
         return {
           content: [{ type: "text", text: `Action performed: ${action}` }],
+          _meta: {}
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Action error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          _meta: {},
+          isError: true
+        };
+      }
+
+    case "stagehand_cachedact":
+      try {
+        const action = args.action as string;
+        const description = (action ? action + ': ' : '') + args.description as string;
+        const selector = args.selector as string;
+        
+        await stagehand.page.act({
+          description,
+          selector
+        });
+        return {
+          content: [{ type: "text", text: `Action performed: ${description} on ${selector}` }],
           _meta: {}
         };
       } catch (error) {

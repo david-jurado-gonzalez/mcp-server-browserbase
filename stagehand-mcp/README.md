@@ -22,6 +22,7 @@ cp .env.example .env
 
 - **stagehand_navigate**: Navega a una URL específica en el navegador
 - **stagehand_act**: Realiza acciones en elementos de la página
+- **stagehand_cachedact**: Realiza acciones observadas en elementos de la página
 - **stagehand_extract**: Extrae texto de la página actual
 - **stagehand_observe**: Observa elementos en la página
 - **screenshot**: Toma capturas de pantalla (se guardan en downloads/screenshots)
@@ -72,6 +73,7 @@ El servidor se puede configurar en mcp_settings.json con este formato:
         "stagehand_observe",
         "stagehand_extract",
         "stagehand_act",
+        "stagehand_cachedact",
         "stagehand_navigate"
       ]
     }
