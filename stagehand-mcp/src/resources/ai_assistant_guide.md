@@ -1,24 +1,24 @@
-# Guía para el Asistente de IA - Servidor Stagehand MCP
+# Guide to AI Wizard - Stagehand MCP Server
 
-Este documento proporciona orientación sobre cómo utilizar las herramientas y recursos del servidor Stagehand MCP.
+This document provides guidance on how to use the Stagehand MCP server tools and resources.
 
-## Herramientas Disponibles:
+## Available Tools:
 
-- `stagehand_navigate`: Navega a una URL específica.
-- `stagehand_act`: Realiza una acción sobre un elemento de la página web.
-- `stagehand_extract`: Extrae todo el texto de la página actual.
-- `stagehand_observe`: Observa elementos accionables en la página web.
-- `screenshot`: Toma una captura de pantalla de la página actual.
+- `stagehand_navigate`: Navigate to a specific URL.
+- `stagehand_act`: Performs an action on an element of the web page.
+- `stagehand_extract`: Extracts all the text from the current page.
+- `stagehand_observe`: Observe actionable elements on the web page.
+- `screenshot`: Take a screenshot of the current page.
 
-## Cómo usar las herramientas:
+#### How to use the tools:
 
-- **Navegación:** Utiliza `stagehand_navigate` para ir a la página web necesaria antes de realizar otras acciones.
-- **Interacción:** Usa `stagehand_observe` para identificar elementos interactuables y luego `stagehand_act` para interactuar con ellos (clics, escritura, etc.). Sé lo más específico posible en la descripción de la acción.
-- **Extracción de Información:** Usa `stagehand_extract` para obtener el contenido de texto completo de la página.
-- **Depuración/Visualización:** Usa `screenshot` si necesitas ver el estado actual de la página.
+- **Navigation:** Use `stagehand_navigate` to go to the necessary web page before performing other actions.
+- **Interaction:** Use `stagehand_observe` to identify interactable elements and then `stagehand_act` to interact with them (clicks, typing, etc.). Be as specific as possible in the description of the action.
+- **Information Extraction:** Use `stagehand_extract` to get the full text content of the page.
+- Debugging/Display: Use screenshot if you need to see the current state of the page.
 
-## Recursos Disponibles:
+## Available Resources:
 
-- `stagehand://ai_assistant_guide`: Esta guía.
+- `stagehand://ai_assistant_guide`: This guide.
 
-Utiliza estas herramientas y recursos de manera efectiva para interactuar con páginas web y completar las tareas del usuario.
+Use these tools and resources effectively to interact with web pages and complete user tasks.
