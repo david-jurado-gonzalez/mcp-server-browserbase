@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import type { LogLine } from "@browserbasehq/stagehand";
-// Import McpServer specifically if we need its type
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-// Keep base Server type if needed for compatibility or if McpServer extends it implicitly
-// import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+// Import base Server class
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+// Remove McpServer import as we are using base Server
+// import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
 
 // Get the directory name for the current module
 // Assuming this runs from stagehand-mcp/dist after compilation, adjust if needed
@@ -28,17 +29,26 @@ export const operationLogs: string[] = [];
 export const consoleLogs: string[] = [];
 
 // Reference to server instance for logging
-let serverInstance: McpServer | undefined; // Use McpServer type
+let serverInstance: Server | undefined; // Use base Server type
+
+// Flag to indicate if the server is ready to send logging messages to the client
+let isServerReadyForLogging = false;
 
 // Set server for logging
-export function setServerInstance(server: McpServer) { // Use McpServer type
+export function setServerInstance(server: Server) { // Use base Server type
   serverInstance = server;
 }
 
 // Get server instance for notifications and logging
-export function getServerInstance(): McpServer | undefined { // Use McpServer type
+export function getServerInstance(): Server | undefined { // Use base Server type
   return serverInstance;
 }
+
+// Set the flag when the server is ready to send logging messages
+export function setServerReadyForLogging() {
+    isServerReadyForLogging = true;
+}
+
 
 // Ensure log directory exists
 export function ensureLogDirectory() {
@@ -141,19 +151,19 @@ export function log(message: string, level: 'info' | 'error' | 'debug' = 'info')
     console.error(logMessage);
   }
 
-  // Send logging message to client via MCP (if server instance set and capable)
-  if (serverInstance && (level === 'info' || level === 'error')) {
-    // Check if McpServer instance has a method for sending log notifications
-    // The base SDK might not define a standard way, check McpServer specifics
-    if (typeof (serverInstance as any).sendNotification === 'function') { // Example check
-        // Assuming a generic notification method exists, adapt as needed
-        (serverInstance as any).sendNotification('$/log', { level, message });
-    } else if (typeof (serverInstance as any).sendLoggingMessage === 'function') {
-         // If it inherits or implements sendLoggingMessage
-        (serverInstance as any).sendLoggingMessage({ level: level, data: message });
-    } else {
-        // console.warn("Logging to client not implemented for this McpServer instance.");
-        // Keep quiet if not supported to avoid spamming logs
+  // Send logging message to client via MCP (only if server instance set AND ready)
+  if (serverInstance && isServerReadyForLogging && (level === 'info' || level === 'error')) {
+    try {
+        // Base Server class should have sendLoggingMessage
+        if (typeof (serverInstance as any).sendLoggingMessage === 'function') {
+             (serverInstance as any).sendLoggingMessage({ level: level, data: message });
+        } else {
+            // This else block should ideally not be reached if using base Server
+            // console.warn("Logging to client not implemented for this Server instance.");
+        }
+    } catch (e) {
+        // Catch "Not connected" or other errors during early logging attempts
+        console.error("Error sending log message to client:", e); // Avoid infinite logging loop
     }
   }
 }
