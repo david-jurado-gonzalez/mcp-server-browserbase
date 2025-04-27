@@ -5,8 +5,15 @@
  */
 import { Resource, ResourceTemplate, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js"; // Corrected type import
 
-// Define static resources (if any) - currently none
-export const RESOURCES: Resource[] = []; // Added type annotation
+// Define static resources
+export const RESOURCES: Resource[] = [
+  {
+    uri: "stagehand://ai_assistant_guide",
+    mimeType: "text/markdown",
+    name: "Stagehand AI Assistant Guide",
+    description: "Guía para el Asistente de IA sobre el uso de las herramientas de Stagehand MCP",
+  },
+]; // Added type annotation
 
 // Define static resource templates (if any) - currently none
 export const RESOURCE_TEMPLATES: ResourceTemplate[] = []; // Added type annotation
@@ -25,7 +32,7 @@ export function listResources(): { resources: Resource[] } { // Added return typ
     uri: `screenshot://${name}`, // Using a custom URI scheme for screenshots
     mimeType: "image/png",
     name: `Screenshot: ${name}`,
-    // description: `Screenshot taken at ${new Date().toISOString()}` // Optional description
+    description: `Screenshot taken at ${new Date().toISOString()}` // Optional description
   }));
 
   return {
@@ -71,7 +78,29 @@ export function readResource(uri: string): ReadResourceResult { // Corrected ret
     }
   }
 
-  // TODO: Add logic here to read other types of resources if needed
+  if (uri === "stagehand://ai_assistant_guide") {
+    try {
+      // Read the content of the markdown file
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(__dirname, 'resources', 'ai_assistant_guide.md');
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: "text/markdown",
+            blob: Buffer.from(fileContent).toString('base64'),
+          },
+        ],
+      };
+    } catch (error: any) {
+      console.error(`Error reading AI assistant guide resource: ${error}`);
+      throw new Error(`Failed to read AI assistant guide resource: ${error.message}`);
+    }
+  }
+
 
   throw new Error(`Resource not found or unsupported URI scheme: ${uri}`);
 }

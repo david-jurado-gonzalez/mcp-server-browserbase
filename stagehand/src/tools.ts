@@ -20,7 +20,8 @@ export const TOOLS: Tool[] = [
   {
     name: "stagehand_act",
     description: `Performs an action on a web page element. Act actions should be as atomic and 
-      specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input". 
+      specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input" or
+      "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "scroll the modal to the next chunk". 
       AVOID actions that are more than one step, i.e. "Order me pizza" or "Send an email to Paul 
       asking him to call me". `,
     inputSchema: {
