@@ -1,7 +1,9 @@
 import { Stagehand } from "@browserbasehq/stagehand";
 import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { getServerInstance, operationLogs } from "./logging.js";
 import path from "path";
 import config from "./config.js";
+import { screenshots } from "./resources.js";
 
 // Define the Stagehand tools
 export const TOOLS: Tool[] = [
@@ -98,7 +100,7 @@ export async function handleToolCall(
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Navigation error: ${errorMsg}` }],
+          content: [{ type: "text", text: `Navigation error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true
         };
@@ -120,7 +122,7 @@ export async function handleToolCall(
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Action error: ${errorMsg}` }],
+          content: [{ type: "text", text: `Action error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true
         };
@@ -138,9 +140,9 @@ export async function handleToolCall(
             if (!line) return false;
             if (
               (line.includes("{") && line.includes("}")) ||
-              line.includes("@keyframes") ||
-              line.match(/^\.[a-zA-Z0-9_-]+\s*{/) ||
-              line.match(/^[a-zA-Z-]+:[a-zA-Z0-9%\s\(\)\.,-]+;$/)
+              line.includes("@keyframes") || // Remove CSS animations
+              line.match(/^\.[a-zA-Z0-9_-]+\s*{/) || // Remove CSS lines starting with .className {
+              line.match(/^[a-zA-Z-]+:[a-zA-Z0-9%\s\(\)\.,-]+;$/) // Remove lines like "color: blue;" or "margin: 10px;"
             ) {
               return false;
             }
@@ -159,7 +161,7 @@ export async function handleToolCall(
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Content extraction error: ${errorMsg}` }],
+          content: [{ type: "text", text: `Content extraction error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true
         };
@@ -178,7 +180,7 @@ export async function handleToolCall(
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Observation error: ${errorMsg}` }],
+          content: [{ type: "text", text: `Observation error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true
         };
@@ -190,19 +192,43 @@ export async function handleToolCall(
         const filename = `screenshot-${timestamp}.png`;
         const filepath = path.join(config.screenshotsDir, filename);
         
-        await stagehand.page.screenshot({
+        const screenshotBuffer = await stagehand.page.screenshot({
           path: filepath,
           fullPage: false,
         });
 
+        // Convert buffer to base64 string and store in memory
+        const screenshotBase64 = screenshotBuffer.toString("base64");
+        screenshots.set(filename, screenshotBase64);
+
+        // Notify the client that the resources changed
+        const serverInstance = getServerInstance();
+        if (serverInstance) {
+          serverInstance.notification({
+            method: "notifications/resources/list_changed",
+          });
+        }
+
         return {
-          content: [{ type: "text", text: `Screenshot saved to: ${filepath}` }],
+          content: [{
+            type: "text",
+            text: `Screenshot taken with name: ${filename}`,
+          },
+          {
+            type: "text",
+            text: `Screenshot saved to: ${filepath}`
+          },
+          {
+            type: "image",
+            data: screenshotBase64,
+            mimeType: "image/png",
+          }],
           _meta: {}
         };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Screenshot error: ${errorMsg}` }],
+          content: [{ type: "text", text: `Screenshot error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true
         };
@@ -210,7 +236,7 @@ export async function handleToolCall(
 
     default:
       return {
-        content: [{ type: "text", text: `Unknown tool: ${name}` }],
+        content: [{ type: "text", text: `Unknown tool: ${name}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
         _meta: {},
         isError: true
       };

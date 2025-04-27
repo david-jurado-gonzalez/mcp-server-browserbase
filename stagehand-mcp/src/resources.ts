@@ -32,7 +32,7 @@ export function listResources(): { resources: Resource[] } { // Added return typ
     uri: `screenshot://${name}`, // Using a custom URI scheme for screenshots
     mimeType: "image/png",
     name: `Screenshot: ${name}`,
-    description: `Screenshot taken at ${new Date().toISOString()}` // Optional description
+    // description: `Screenshot taken at ${new Date().toISOString()}` // Optional description
   }));
 
   return {
