@@ -3,43 +3,44 @@ import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import path from "path";
 import config from "./config.js";
 
-// Define las herramientas de Stagehand
+// Define the Stagehand tools
 export const TOOLS: Tool[] = [
   {
     name: "stagehand_navigate",
     description:
-      "Navega a una URL en el navegador. Usa esta herramienta solo con URLs de las que estés seguro que funcionarán y se mantendrán actualizadas. De lo contrario, usa https://google.com como punto de partida.",
+      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://google.com as the starting point.",
     inputSchema: {
       type: "object",
       properties: {
-        url: { type: "string", description: "La URL a la que navegar" },
+        url: { type: "string", description: "The URL to navigate to" },
       },
       required: ["url"],
     },
   },
   {
     name: "stagehand_act",
-    description: `Realiza una acción sobre un elemento de la página web. Las acciones 'act' deben ser lo más atómicas y 
-      específicas posible, por ejemplo, "Haz clic en el botón de iniciar sesión" o "Escribe 'hola' en el campo de búsqueda". 
-      EVITA acciones que impliquen más de un paso, por ejemplo, "Pídeme una pizza" o "Envía un correo electrónico a Paul 
-      pidiéndole que me llame". La instrucción debe ser tan específica como sea posible, y tener una fuerte correlación con el texto de la página. Si no estás seguro, usa 'observe' antes de usar 'act'.`,
+    description: `Performs an action on a web page element. Act actions should be as atomic and 
+      specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input" or
+      "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "scroll the modal to the next chunk". 
+      AVOID actions that are more than one step, i.e. "Order me pizza" or "Send an email to Paul 
+      asking him to call me".`,
     inputSchema: {
       type: "object",
       properties: {
         action: {
           type: "string",
-          description: `La acción a realizar. Debe ser lo más atómica y específica posible, 
-          por ejemplo, 'Haz clic en el botón de iniciar sesión' o 'Escribe 'hola' en el campo de búsqueda'. EVITA acciones que impliquen más de un 
-          paso, por ejemplo, 'Pídeme una pizza' o 'Envía un correo electrónico a Paul pidiéndole que me llame'. La instrucción debe ser tan específica como sea posible, 
-          y tener una fuerte correlación con el texto de la página. Si no estás seguro, usa 'observe' antes de usar 'act'.`,
+          description: `The action to perform. Should be as atomic and specific as possible, 
+          i.e. 'Click the sign in button' or 'Type 'hello' into the search input'. AVOID actions that are more than one 
+          step, i.e. 'Order me pizza' or 'Send an email to Paul asking him to call me'. The instruction should be just as specific as possible, 
+          and have a strong correlation to the text on the page. If unsure, use observe before using act."`,
         },
         variables: {
           type: "object",
           additionalProperties: true,
-          description: `Variables usadas en la plantilla de acción. SOLO usa variables si estás tratando 
-            con datos sensibles o contenido dinámico. Por ejemplo, si estás iniciando sesión en un sitio web, 
-            puedes usar una variable para la contraseña. Al usar variables, DEBES tener la clave de la variable
-            en la plantilla de acción. Por ejemplo: {"action": "Fill in the password", "variables": {"password": "123456"}}`,
+          description: `Variables used in the action template. ONLY use variables if you're dealing 
+            with sensitive data or dynamic content. For example, if you're logging in to a website, 
+            you can use a variable for the password. When using variables, you MUST have the variable
+            key in the action template. For example: {"action": "Fill in the password", "variables": {"password": "123456"}}`,
         },
       },
       required: ["action"],
@@ -47,7 +48,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "stagehand_extract",
-    description: `Extrae todo el texto de la página actual.`,
+    description: `Extracts all of the text from the current page.`,
     inputSchema: {
       type: "object",
       properties: {},
@@ -56,14 +57,14 @@ export const TOOLS: Tool[] = [
   {
     name: "stagehand_observe",
     description:
-      "Observa elementos en la página web. Usa esta herramienta para observar elementos que podrás usar más tarde en una acción. Usa 'observe' en lugar de 'extract' cuando trates con elementos accionables (interactuables) en lugar de texto. La mayoría de las veces, querrás usar 'extract' en lugar de 'observe' cuando se trate de scraping o extracción de texto estructurado.",
+      "Observes elements on the web page. Use this tool to observe elements that you can later use in an action. Use observe instead of extract when dealing with actionable (interactable) elements rather than text. More often than not, you'll want to use extract instead of observe when dealing with scraping or extracting structured text.",
     inputSchema: {
       type: "object",
       properties: {
         instruction: {
           type: "string",
           description:
-            "Instrucción para la observación (por ejemplo, 'encuentra el botón de inicio de sesión'). Esta instrucción debe ser extremadamente específica.",
+            "Instruction for observation (e.g., 'find the login button'). This instruction must be extremely specific.",
         },
       },
       required: ["instruction"],
@@ -72,7 +73,7 @@ export const TOOLS: Tool[] = [
   {
     name: "screenshot",
     description:
-      "Toma una captura de pantalla de la página actual. Usa esta herramienta para saber dónde te encuentras en la página cuando controlas el navegador con Stagehand. Usa esta herramienta solo cuando las otras herramientas no sean suficientes para obtener la información que necesitas.",
+      "Takes a screenshot of the current page. Use this tool to learn where you are on the page when controlling the browser with Stagehand. Only use this tool when the other tools are not sufficient to get the information you need.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -80,7 +81,7 @@ export const TOOLS: Tool[] = [
   },
 ];
 
-// Manejar las llamadas a las herramientas
+// Handle tool calls
 export async function handleToolCall(
   name: string,
   args: Record<string, unknown>,
@@ -91,13 +92,13 @@ export async function handleToolCall(
       try {
         await stagehand.page.goto(args.url as string);
         return {
-          content: [{ type: "text", text: `Navegando a: ${args.url}` }],
+          content: [{ type: "text", text: `Navigating to: ${args.url}` }],
           _meta: {}
         };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Error al navegar: ${errorMsg}` }],
+          content: [{ type: "text", text: `Navigation error: ${errorMsg}` }],
           _meta: {},
           isError: true
         };
@@ -113,13 +114,13 @@ export async function handleToolCall(
           variables
         });
         return {
-          content: [{ type: "text", text: `Acción realizada: ${action}` }],
+          content: [{ type: "text", text: `Action performed: ${action}` }],
           _meta: {}
         };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Error al realizar la acción: ${errorMsg}` }],
+          content: [{ type: "text", text: `Action error: ${errorMsg}` }],
           _meta: {},
           isError: true
         };
@@ -158,7 +159,7 @@ export async function handleToolCall(
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Error al extraer contenido: ${errorMsg}` }],
+          content: [{ type: "text", text: `Content extraction error: ${errorMsg}` }],
           _meta: {},
           isError: true
         };
@@ -171,13 +172,13 @@ export async function handleToolCall(
           returnAction: false,
         });
         return {
-          content: [{ type: "text", text: `Observaciones: ${JSON.stringify(observations)}` }],
+          content: [{ type: "text", text: `Observations: ${JSON.stringify(observations)}` }],
           _meta: {}
         };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Error al observar: ${errorMsg}` }],
+          content: [{ type: "text", text: `Observation error: ${errorMsg}` }],
           _meta: {},
           isError: true
         };
@@ -195,13 +196,13 @@ export async function handleToolCall(
         });
 
         return {
-          content: [{ type: "text", text: `Captura de pantalla guardada en: ${filepath}` }],
+          content: [{ type: "text", text: `Screenshot saved to: ${filepath}` }],
           _meta: {}
         };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: "text", text: `Error al tomar captura de pantalla: ${errorMsg}` }],
+          content: [{ type: "text", text: `Screenshot error: ${errorMsg}` }],
           _meta: {},
           isError: true
         };
@@ -209,7 +210,7 @@ export async function handleToolCall(
 
     default:
       return {
-        content: [{ type: "text", text: `Herramienta desconocida: ${name}` }],
+        content: [{ type: "text", text: `Unknown tool: ${name}` }],
         _meta: {},
         isError: true
       };

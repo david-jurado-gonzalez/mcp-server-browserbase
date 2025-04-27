@@ -11,7 +11,7 @@ export const RESOURCES: Resource[] = [
     uri: "stagehand://ai_assistant_guide",
     mimeType: "text/markdown",
     name: "Stagehand AI Assistant Guide",
-    description: "Guía para el Asistente de IA sobre el uso de las herramientas de Stagehand MCP",
+    description: "AI Assistant Guide to Using Stagehand MCP Tools",
   },
 ]; // Added type annotation
 
