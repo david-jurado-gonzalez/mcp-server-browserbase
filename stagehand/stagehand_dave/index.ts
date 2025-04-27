@@ -31,6 +31,33 @@ async function main({
   context: BrowserContext; // Playwright BrowserContext
   stagehand: Stagehand; // Stagehand instance
 }) {
+
+
+  await page.goto("https://test.salesforce.com/"); // Navigate to a URL
+  await page.act("Type 'david.jurado@evolutio.com.012.prod.dev1' into the username field"); // Type into the username field
+  await page.act("Type '15121512$m0588V1' into the password field"); // Type into the password field
+  await page.act("Click the login button"); // Click the login button
+  await page.waitForTimeout(5000); // Wait for the page to load
+  await page.act("Click the login button");
+  await page.waitForTimeout(2000);
+  await page.act("Click the Omni-Channel button");
+  await page.waitForTimeout(1000);
+  await page.act("Click the dropdown button of the Omni-channel popup. It is the triangle at the right of the 'Offline' text"); // Click the login button
+  await page.act("Click the Disponible option");
+  await page.waitForTimeout(1000);
+  
+  return;
+
+
+
+
+
+
+
+
+
+
+  
   // Navigate to a URL
   await page.goto("https://docs.stagehand.dev/reference/introduction");
 
