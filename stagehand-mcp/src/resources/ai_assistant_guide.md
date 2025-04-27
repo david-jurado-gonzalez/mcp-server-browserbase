@@ -15,7 +15,7 @@ This document provides guidance on how to use the Stagehand MCP server tools and
 - **Navigation:** Use `stagehand_navigate` to go to the necessary web page before performing other actions.
 - **Interaction:** Use `stagehand_observe` to identify interactable elements and then `stagehand_act` to interact with them (clicks, typing, etc.). Be as specific as possible in the description of the action.
 - **Information Extraction:** Use `stagehand_extract` to get the full text content of the page.
-- Debugging/Display: Use screenshot if you need to see the current state of the page.
+- **Debugging/Display:** Use screenshot if you need to see the current state of the page.
 
 ## Available Resources:
 
