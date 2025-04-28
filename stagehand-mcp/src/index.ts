@@ -1,8 +1,8 @@
 // cd /c/Users/David/Documents/MCP/mcp-server-browserbase/stagehand-mcp && npm run build
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { Stagehand } from "@browserbasehq/stagehand";
-import config from "./config.js";
+import { createServer } from "./server.js";
+import { closeStagehand } from "./stagehandManager.js";
 import {
   log,
   ensureLogDirectory,
@@ -11,10 +11,6 @@ import {
   setupLogRotation,
   setServerReadyForLogging,
 } from "./logging.js";
-// Import createServer and setStagehandInstance from the new server module
-import { createServer } from "./server.js";
-
-import { closeStagehand } from "./stagehandManager.js";
 
 async function main() {
   // Setup logging first

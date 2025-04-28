@@ -22,9 +22,7 @@ import {
   ListPromptsRequest,
   GetPromptRequest,
 } from "@modelcontextprotocol/sdk/types.js";
-import { Stagehand } from "@browserbasehq/stagehand";
 // Import config, tools, utils, logging, prompts, resources
-import config from "./config.js";
 import { TOOLS, handleToolCall } from "./tools.js";
 import { sanitizeMessage } from "./utils.js";
 import {

@@ -7,6 +7,10 @@ import { screenshots } from "./resources.js";
 import { drawObserveOverlay, clearOverlays } from "./utils.js";
 import { getStagehandInstance, initializeStagehand } from "./stagehandManager.js";
 
+import Ajv from 'ajv';
+
+const ajv = new Ajv();
+
 // Define the Stagehand tools
 export const TOOLS: Tool[] = [
   {
@@ -90,7 +94,7 @@ export const TOOLS: Tool[] = [
         },
         schema: {
           type: "string",
-          description: "An optional string representing the Zod schema code for the expected output (e.g., 'z.object({ price: z.number() })'). This string will be evaluated as JavaScript code on the server side. WARNING: Evaluating user-provided code is dangerous and requires a secure implementation."
+          description: "An optional string representing a valid JSON Schema for the expected output (e.g., '{\"type\": \"object\", \"properties\": {\"price\": {\"type\": \"number\"}}}'). This schema will be used to validate and structure the extracted data."
         }
       },
       // instruction and schema are optional
@@ -243,16 +247,18 @@ export async function handleToolCall(
         if (instruction || schemaString) {
             let schema = undefined;
             if (schemaString) {
-                // WARNING: Evaluating user-provided strings as code is dangerous.
-                // A production system requires a secure method to handle schema definitions.
-                // This is a simplified example for demonstration.
-                // Requires 'import { z } from "zod";' at the top of the file.
                 try {
-                    // Assuming 'z' is imported and available in the scope for eval.
-                    // This is a security risk and should be replaced with a safer parsing mechanism.
-                    schema = eval(schemaString);
+                    // Parse the schema string as JSON.
+                    schema = JSON.parse(schemaString);
+
+                    // Validate the parsed schema against the JSON Schema standard
+                    const validate = ajv.compile({}); // Use an empty schema to validate the schema itself
+                    if (!validate(schema)) {
+                        throw new Error(`Invalid JSON Schema: ${ajv.errorsText(validate.errors)}`);
+                    }
+
                 } catch (e) {
-                    throw new Error(`Failed to evaluate schema string: ${e instanceof Error ? e.message : String(e)}`);
+                    throw new Error(`Failed to process schema string: ${e instanceof Error ? e.message : String(e)}`);
                 }
             }
 
