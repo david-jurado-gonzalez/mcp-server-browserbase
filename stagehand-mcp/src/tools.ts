@@ -7,7 +7,7 @@ import { screenshots } from "./resources.js";
 import { drawObserveOverlay, clearOverlays } from "./utils.js";
 import { getStagehandInstance, initializeStagehand } from "./stagehandManager.js";
 
-import Ajv from 'ajv';
+import { Ajv } from 'ajv';
 
 const ajv = new Ajv();
 
