@@ -117,6 +117,17 @@ export const TOOLS: Tool[] = [
       properties: {},
     },
   },
+  {
+    name: "stagehand_agent_execute",
+    description: "Executes a natural language instruction using the Stagehand agent.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        instruction: { type: "string", description: "The instruction for the Stagehand agent." },
+      },
+      required: ["instruction"],
+    },
+  },
 ];
 
 // Handle tool calls
@@ -373,6 +384,31 @@ export async function handleToolCall(
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
           content: [{ type: "text", text: `Screenshot error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          _meta: {},
+          isError: true
+        };
+      }
+
+    case "stagehand_agent_execute":
+      try {
+        const instruction = args.instruction as string;
+        if (!instruction) {
+          return {
+            content: [{ type: "text", text: `Missing required argument 'instruction' for stagehand_agent_execute.` }],
+            _meta: {},
+            isError: true
+          };
+        }
+        const operator = stagehand.agent();
+        const { message, actions } = await operator.execute(instruction);
+        return {
+          content: [{ type: "text", text: message }],
+          _meta: {}
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Stagehand agent execution error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true
         };

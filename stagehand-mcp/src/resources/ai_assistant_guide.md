@@ -9,6 +9,7 @@ This document provides guidance on how to use the Stagehand MCP server tools and
 - `stagehand_extract`: Extracts information from the current page based on an optional instruction and schema. If no instruction or schema is provided, it extracts all text from the page body.
 - `stagehand_observe`: Observe actionable elements in the web page. Preview actions.
 - `screenshot`: Take a screenshot of the current page.
+- `stagehand_agent_execute`: Executes a natural language instruction using the Stagehand agent.
 
 #### How to use the tools:
 
@@ -20,6 +21,7 @@ This document provides guidance on how to use the Stagehand MCP server tools and
 - **Information Extraction:** Use `stagehand_extract` to get the full text content of the page, or use the optional `instruction` and `schema` parameters to extract specific structured data.
   - **Using `instruction` and `schema`:** Provide a natural language `instruction` describing the data to extract (e.g., "extract the item price") and a `schema` string representing a valid JSON Schema for the expected output (e.g., `'{\"type\": \"object\", \"properties\": {\"price\": {\"type\": \"number\"}}}'`). This schema will be used to validate and structure the extracted data.
 - **Debugging/Visualization:** Use `screenshot` if you need to see the current state of the page.
+- **Agent Execution:** Use `stagehand_agent_execute` with the `instruction` parameter to pass a natural language instruction directly to the Stagehand agent for execution.
 
 
 ## Available Resources:
