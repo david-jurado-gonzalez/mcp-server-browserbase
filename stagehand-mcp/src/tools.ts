@@ -27,10 +27,12 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "stagehand_act",
-    description: `Performs an action on a web page element. Act actions should be as atomic and 
-      specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input" or
-      "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "Scroll the modal to the next chunk". 
-      AVOID actions that are more than one step, i.e. "Order me pizza" or "Send an email to Paul 
+    description: `Performs an action on a web page element. This tool can perform an action based on a natural language instruction or based on a previously observed element's selector and method.
+      If 'selector' and 'method' are provided, the action will be performed on the element identified by the selector using the specified method.
+      If only 'action' and optionally 'variables' are provided, the action will be performed based on the natural language instruction.
+      Act actions should be as atomic and specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input" or
+      "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "Scroll the modal to the next chunk".
+      AVOID actions that are more than one step, i.e. "Order me pizza" or "Send an email to Paul
       asking him to call me". Only use act when you are sure that the action is going to be successful.
       If you are not sure, observe first to see if the action is going to be successful.`,
     inputSchema: {
@@ -38,48 +40,38 @@ export const TOOLS: Tool[] = [
       properties: {
         action: {
           type: "string",
-          description: `The action to perform. Should be as atomic and specific as possible, 
-          i.e. 'Click the sign in button' or 'Type 'hello' into the search input'. AVOID actions that are more than one 
-          step, i.e. 'Order me pizza' or 'Send an email to Paul asking him to call me'. The instruction should be just as specific as possible, 
+          description: `The natural language instruction for the action. Required if 'selector' and 'method' are not provided. Should be as atomic and specific as possible,
+          i.e. 'Click the sign in button' or 'Type 'hello' into the search input'. AVOID actions that are more than one
+          step, i.e. 'Order me pizza' or 'Send an email to Paul asking him to call me'. The instruction should be just as specific as possible,
           and have a strong correlation to the text on the page. If unsure, use observe before using act."`,
         },
         variables: {
           type: "object",
           additionalProperties: true,
-          description: `Variables used in the action template. ONLY use variables if you're dealing 
-            with sensitive data or dynamic content. For example, if you're logging in to a website, 
+          description: `Variables used in the action template. ONLY use variables if you're dealing
+            with sensitive data or dynamic content. For example, if you're logging in to a website,
             you can use a variable for the password. When using variables, you MUST have the variable
             key in the action template. For example: {"action": "Fill in the %username% into the username field", "variables": {"username": "dave_jury"}}`,
         },
-      },
-      required: ["action"],
-    },
-  },
-  {
-    name: "stagehand_cachedact",
-    description: `Performs a action on a web page element previously observed (cached).`,
-    inputSchema: {
-      type: "object",
-      properties: {
-        description: {
+        selector: {
           type: "string",
-          description: `References the UI element the cached action will use. For example: "The quickstart link" or "textbox: Username" or "button: Submit" or "link: Sign in".`,
+          description: `The path returned from an observation. Required if 'action' is not provided. For example: /html/body/div[1]/div[1]/a`,
         },
         method: {
           type: "string",
-          description: 
-            `click: To click on an item.
+          description: `The method to use on the element identified by the selector. Required if 'action' is not provided.
+            click: To click on an item.
             type: To type text in an input field.
             hover: To hover over an element.
             scroll: To navigate to an element.
             select: To select an option from a drop-down menu.`,
         },
-        selector: {
+        description: {
           type: "string",
-          description: `The path returned from an observation. For example: /html/body/div[1]/div[1]/a`,
+          description: `References the UI element the cached action will use. Required if 'action' is not provided. For example: "The quickstart link" or "textbox: Username" or "button: Submit" or "link: Sign in".`,
         },
       },
-      required: ["selector", "method", "description"],
+      required: [],
     },
   },
   {
@@ -190,13 +182,35 @@ export async function handleToolCall(
 
     case "stagehand_act":
       try {
-        const action = args.action as string;
+        const selector = args.selector as string | undefined;
+        const method = args.method as string | undefined;
+        const description = args.description as string | undefined;
+        const action = args.action as string | undefined;
         const variables = args.variables as Record<string, string> | undefined;
-        
-        const result = await stagehand.page.act({
-          action,
-          variables
-        });
+
+        let result;
+        if (selector && method && description) {
+          // Use cached action logic
+          await clearOverlays(stagehand.page); // Remove the highlight before acting
+          result = await stagehand.page.act({
+            description,
+            selector,
+            method
+          });
+        } else if (action) {
+          // Use natural language action logic
+          result = await stagehand.page.act({
+            action,
+            variables
+          });
+        } else {
+           return {
+              content: [{ type: "text", text: `Invalid arguments for stagehand_act. Provide either 'action' or ('selector', 'method', and 'description').` }],
+              _meta: {},
+              isError: true
+            };
+        }
+
         const text = (result.success ? `Success action "${result.action}": ` : `Failure action "${result.action}": `) + result.message;
         return {
           content: [{ type: "text", text}],
@@ -211,31 +225,6 @@ export async function handleToolCall(
         };
       }
 
-    case "stagehand_cachedact":
-      try {
-        const method = args.method as string;
-        //const action = args.action as string;
-        const description = args.description as string;
-        const selector = args.selector as string;
-        await clearOverlays(stagehand.page); // Remove the highlight before acting
-        const result = await stagehand.page.act({
-          description,
-          selector,
-          method
-        });
-        const text = (result.success ? `Success action "${result.action}": ` : `Failure action "${result.action}": `) + result.message;
-        return {
-          content: [{ type: "text", text}], // `Action performed: ${description} on ${selector}`
-          _meta: {}
-        };
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: "text", text: `Action error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
-          _meta: {},
-          isError: true
-        };
-      }
 
     case "stagehand_extract":
       try {
@@ -264,7 +253,7 @@ export async function handleToolCall(
 
             extractedContent = await stagehand.page.extract({
                 instruction: instruction,
-                schema: schema
+                schema: schema as any // Forzar tipo a any para resolver error de compilación
             });
 
             // stagehand.page.extract returns an object or null/undefined.
