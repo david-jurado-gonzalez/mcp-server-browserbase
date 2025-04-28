@@ -5,6 +5,7 @@ import path from "path";
 import config from "./config.js";
 import { screenshots } from "./resources.js";
 import { drawObserveOverlay, clearOverlays } from "./utils.js";
+import { getStagehandInstance, initializeStagehand } from "./stagehandManager.js";
 
 // Define the Stagehand tools
 export const TOOLS: Tool[] = [
@@ -116,8 +117,46 @@ export const TOOLS: Tool[] = [
 export async function handleToolCall(
   name: string,
   args: Record<string, unknown>,
-  stagehand: Stagehand
+  // Eliminamos el parámetro stagehand ya que lo obtendremos del manager
+  // stagehand: Stagehand
 ): Promise<CallToolResult> {
+  let stagehand = getStagehandInstance();
+
+  // Si Stagehand no está inicializado y la herramienta no es stagehand_navigate,
+  // informamos al usuario que debe navegar primero.
+  if (!stagehand && name !== "stagehand_navigate") {
+    return {
+      content: [{ type: "text", text: `Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page.` }],
+      _meta: {},
+      isError: true
+    };
+  }
+
+  // Si Stagehand no está inicializado y la herramienta es stagehand_navigate, lo inicializamos.
+  if (!stagehand && name === "stagehand_navigate") {
+    try {
+      stagehand = await initializeStagehand();
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+       return {
+          content: [{ type: "text", text: `Failed to initialize Stagehand: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          _meta: {},
+          isError: true
+        };
+    }
+  }
+
+  // Si Stagehand se inicializó correctamente (o ya existía), procedemos con la llamada a la herramienta.
+  // Si la inicialización falló, el bloque anterior ya habría retornado un error.
+  if (!stagehand) {
+       return {
+          content: [{ type: "text", text: `An unexpected error occurred: Stagehand instance is null after initialization attempt.` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          _meta: {},
+          isError: true
+        };
+  }
+
+
   switch (name) {
     case "stagehand_navigate":
       try {
@@ -164,7 +203,7 @@ export async function handleToolCall(
         //const action = args.action as string;
         const description = args.description as string;
         const selector = args.selector as string;
-        await clearOverlays(stagehand.page); // Remove the highlight before acting        
+        await clearOverlays(stagehand.page); // Remove the highlight before acting
         const result = await stagehand.page.act({
           description,
           selector,
@@ -172,7 +211,7 @@ export async function handleToolCall(
         });
         const text = (result.success ? `Success action "${result.action}": ` : `Failure action "${result.action}": `) + result.message;
         return {
-          content: [{ type: "text", text}], // `Action performed: ${description} on ${selector}` 
+          content: [{ type: "text", text}], // `Action performed: ${description} on ${selector}`
           _meta: {}
         };
       } catch (error) {

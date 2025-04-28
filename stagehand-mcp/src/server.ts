@@ -45,12 +45,6 @@ import {
 } from "./resources.js";
 
 // Global state for Stagehand instance (will be initialized in index.ts and passed)
-let stagehandInstance: Stagehand | undefined;
-
-// Function to set the Stagehand instance from index.ts
-export function setStagehandInstance(instance: Stagehand) {
-    stagehandInstance = instance;
-}
 
 /**
  * Creates and configures the Server instance with standard MCP request handlers.
@@ -111,16 +105,7 @@ export function createServer(): Server { // Changed return type to Server
       logRequest("CallTool", request.params);
       operationLogs.length = 0; // Clear logs for new operation
 
-      // Ensure Stagehand is initialized before calling a tool
-      if (!stagehandInstance) {
-          const errorMsg = "Stagehand instance not initialized.";
-          log(errorMsg, "error");
-           return {
-            content: [{ type: "text", text: errorMsg }],
-            isError: true,
-          };
-      }
-
+      // La lógica de inicialización y verificación de Stagehand ahora está en handleToolCall
       if (
         !request.params?.name ||
         !TOOLS.find((t) => t.name === request.params.name)
@@ -136,11 +121,10 @@ export function createServer(): Server { // Changed return type to Server
         };
       }
 
-      // Call the tool handler
+      // Call the tool handler (ya no pasamos stagehandInstance)
       const result = await handleToolCall(
         request.params.name,
-        request.params.arguments ?? {},
-        stagehandInstance // Pass the initialized instance
+        request.params.arguments ?? {}
       );
 
       // Sanitization might be redundant, but keeping for consistency with original
@@ -277,4 +261,4 @@ export function createServer(): Server { // Changed return type to Server
 }
 
 // Note: Stagehand initialization and server connection/startup will remain in index.ts
-// index.ts will call createServer() and setStagehandInstance()
+// index.ts will call createServer()
