@@ -12,7 +12,7 @@ export const TOOLS: Tool[] = [
   {
     name: "stagehand_navigate",
     description:
-      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://www.google.com as the starting point. The first time you access a website it is normal for a popup to appear that asks for registration, login, accepting cookies, etc., so you can observe `stagehand_observe` if there are popups with options before launching actions. This can also happen after certain actions such as those that lead to another page.",
+      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://www.google.com as the starting point. The first time you access a website do observe `stagehand_observe` if there are popups with options to be clicked before launching actions (i.e.: Accpet cookies, Login screen, Disclaimer...). This can also happen after certain actions such as those that lead to another page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -25,10 +25,10 @@ export const TOOLS: Tool[] = [
     name: "stagehand_act",
     description: `Performs an action on a web page element. Act actions should be as atomic and 
       specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input" or
-      "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "scroll the modal to the next chunk". 
+      "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "Scroll the modal to the next chunk". 
       AVOID actions that are more than one step, i.e. "Order me pizza" or "Send an email to Paul 
       asking him to call me". Only use act when you are sure that the action is going to be successful.
-      If you are not sure, use observe first to see if the action is going to be successful.`,
+      If you are not sure, observe first to see if the action is going to be successful.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -53,7 +53,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "stagehand_cachedact",
-    description: `Performs an action on a web page element previously observed.`,
+    description: `Performs a action on a web page element previously observed (cached).`,
     inputSchema: {
       type: "object",
       properties: {
