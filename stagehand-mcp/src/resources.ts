@@ -4,6 +4,8 @@
  * Currently focuses on managing screenshots taken via tools.
  */
 import { Resource, ResourceTemplate, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js"; // Corrected type import
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Define static resources
 export const RESOURCES: Resource[] = [
@@ -81,8 +83,8 @@ export function readResource(uri: string): ReadResourceResult { // Corrected ret
   if (uri === "stagehand://ai_assistant_guide") {
     try {
       // Read the content of the markdown file
-      const fs = require('fs');
-      const path = require('path');
+      //const fs = require('fs');
+      //const path = require('path');
       const filePath = path.join(__dirname, 'resources', 'ai_assistant_guide.md');
       const fileContent = fs.readFileSync(filePath, 'utf-8');
 

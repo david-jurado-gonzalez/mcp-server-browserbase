@@ -4,13 +4,14 @@ import { getServerInstance, operationLogs } from "./logging.js";
 import path from "path";
 import config from "./config.js";
 import { screenshots } from "./resources.js";
+import { drawObserveOverlay, clearOverlays } from "./utils.js";
 
 // Define the Stagehand tools
 export const TOOLS: Tool[] = [
   {
     name: "stagehand_navigate",
     description:
-      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://google.com as the starting point.",
+      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://google.com as the starting point. The first time you access a website it is normal for a popup to appear that asks for registration, login, accepting cookies, etc., so you can try extracting all the content to corroborate it, observe if there are popups or take a snapshot to analyze it before launching actions. This can also happen after certain actions such as those that lead to another page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -25,7 +26,8 @@ export const TOOLS: Tool[] = [
       specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input" or
       "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "scroll the modal to the next chunk". 
       AVOID actions that are more than one step, i.e. "Order me pizza" or "Send an email to Paul 
-      asking him to call me".`,
+      asking him to call me". Only use act when you are sure that the action is going to be successful.
+      If you are not sure, use observe first to see if the action is going to be successful.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -50,7 +52,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "stagehand_cachedact",
-    description: `Performs an action on a web page element previously cached with an observation.`,
+    description: `Performs an action on a web page element previously observed.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -58,16 +60,21 @@ export const TOOLS: Tool[] = [
           type: "string",
           description: `References the UI element the cached action will use. For example: "The quickstart link" or "textbox: Username" or "button: Submit" or "link: Sign in".`,
         },
-        action: {
+        method: {
           type: "string",
-          description: `The verb. For example: "click", "type", "scroll", "select", "drag", "drop".`,
+          description: 
+            `click: To click on an item.
+            type: To type text in an input field.
+            hover: To hover over an element.
+            scroll: To navigate to an element.
+            select: To select an option from a drop-down menu.`,
         },
         selector: {
           type: "string",
           description: `The path returned from an observation. For example: /html/body/div[1]/div[1]/a`,
         },
       },
-      required: ["selector", "description"],
+      required: ["selector", "method", "description"],
     },
   },
   {
@@ -133,12 +140,13 @@ export async function handleToolCall(
         const action = args.action as string;
         const variables = args.variables as Record<string, string> | undefined;
         
-        await stagehand.page.act({
+        const result = await stagehand.page.act({
           action,
           variables
         });
+        const text = (result.success ? `Success action "${result.action}": ` : `Failure action "${result.action}": `) + result.message;
         return {
-          content: [{ type: "text", text: `Action performed: ${action}` }],
+          content: [{ type: "text", text}],
           _meta: {}
         };
       } catch (error) {
@@ -152,16 +160,19 @@ export async function handleToolCall(
 
     case "stagehand_cachedact":
       try {
-        const action = args.action as string;
-        const description = (action ? action + ': ' : '') + args.description as string;
+        const method = args.method as string;
+        //const action = args.action as string;
+        const description = args.description as string;
         const selector = args.selector as string;
-        
-        await stagehand.page.act({
+        await clearOverlays(stagehand.page); // Remove the highlight before acting        
+        const result = await stagehand.page.act({
           description,
-          selector
+          selector,
+          method
         });
+        const text = (result.success ? `Success action "${result.action}": ` : `Failure action "${result.action}": `) + result.message;
         return {
-          content: [{ type: "text", text: `Action performed: ${description} on ${selector}` }],
+          content: [{ type: "text", text}], // `Action performed: ${description} on ${selector}` 
           _meta: {}
         };
       } catch (error) {
@@ -218,6 +229,8 @@ export async function handleToolCall(
           instruction: args.instruction as string,
           returnAction: false,
         });
+
+        await drawObserveOverlay(stagehand.page, observations); // Highlight the search box
         return {
           content: [{ type: "text", text: `Observations: ${JSON.stringify(observations)}` }],
           _meta: {}

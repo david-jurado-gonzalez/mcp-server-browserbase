@@ -4,9 +4,6 @@ import { fileURLToPath } from 'url';
 import type { LogLine } from "@browserbasehq/stagehand";
 // Import base Server class
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-// Remove McpServer import as we are using base Server
-// import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-
 
 // Get the directory name for the current module
 // Assuming this runs from stagehand-mcp/dist after compilation, adjust if needed

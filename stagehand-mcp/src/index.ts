@@ -9,7 +9,7 @@ import {
   registerExitHandlers,
   scheduleLogRotation,
   setupLogRotation,
-  setServerReadyForLogging, // Import the new function
+  setServerReadyForLogging,
 } from "./logging.js";
 // Import createServer and setStagehandInstance from the new server module
 import { createServer, setStagehandInstance } from "./server.js";

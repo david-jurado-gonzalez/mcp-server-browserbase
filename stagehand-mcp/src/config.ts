@@ -1,7 +1,8 @@
 import path from "path";
 import fs from "fs/promises";
 import dotenv from "dotenv";
-import type { ConstructorParams } from "@browserbasehq/stagehand"; // Import ConstructorParams for typing
+import type { ConstructorParams } from "@browserbasehq/stagehand"; // Import ConstructorParams for typing// Import missing function from logging
+import { logLineToString } from "./logging.js";
 
 // Cargar variables de entorno
 dotenv.config();
@@ -23,8 +24,8 @@ class Config {
     localBrowserLaunchOptions: {
       headless: false, // headless is inside localBrowserLaunchOptions
       viewport: {
-        width: 1280,
-        height: 720,
+        width: 1920,
+        height: 1080,
       },
       cdpUrl: process.env.LOCAL_CDP_URL,
     },
@@ -33,8 +34,8 @@ class Config {
        projectId: process.env.BROWSERBASE_PROJECT_ID || "dummy-project-id", // Provide dummy or ensure undefined later
        browserSettings: {
          viewport: {
-           width: 1280,
-           height: 720,
+           width: 1920,
+           height: 1080,
          },
        },
     },
@@ -42,13 +43,14 @@ class Config {
     // Initialize other properties with default or undefined if not provided
     verbose: 1,
     domSettleTimeoutMs: 30000,
-    enableCaching: false,
     browserbaseSessionID: undefined,
     systemPrompt: undefined,
     useAPI: false, // Default to false, ensure it stays false for LOCAL
     waitForCaptchaSolves: false,
     logInferenceToFile: false,
     disablePino: undefined,
+    enableCaching: true /* Enable caching functionality */,
+    logger: (message) => console.error( logLineToString(message) ) /* Custom logging function to stderr */,
   };
 
   constructor() {

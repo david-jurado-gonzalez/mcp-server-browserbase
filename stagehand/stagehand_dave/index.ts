@@ -43,7 +43,7 @@ async function main({
   await page.act("Click the Omni-Channel button");
   await page.waitForTimeout(1000);
   await page.act("Click the dropdown button of the Omni-channel popup. It is the triangle at the right of the 'Offline' text"); // Click the login button
-  await page.act("Click the Disponible option");
+  await page.act("Click the 'Disponible' option");
   await page.waitForTimeout(1000);
   
   return;
