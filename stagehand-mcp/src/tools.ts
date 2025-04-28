@@ -11,7 +11,7 @@ export const TOOLS: Tool[] = [
   {
     name: "stagehand_navigate",
     description:
-      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://google.com as the starting point. The first time you access a website it is normal for a popup to appear that asks for registration, login, accepting cookies, etc., so you can try extracting all the content to corroborate it, observe if there are popups or take a snapshot to analyze it before launching actions. This can also happen after certain actions such as those that lead to another page.",
+      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://www.google.com as the starting point. The first time you access a website it is normal for a popup to appear that asks for registration, login, accepting cookies, etc., so you can observe `stagehand_observe` if there are popups with options before launching actions. This can also happen after certain actions such as those that lead to another page.",
     inputSchema: {
       type: "object",
       properties: {
