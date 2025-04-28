@@ -80,10 +80,20 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "stagehand_extract",
-    description: `Extracts all of the text from the current page.`,
+    description: `Extracts information from the current page based on an optional instruction and schema. If no instruction or schema is provided, it extracts all text from the page body.`,
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        instruction: {
+          type: "string",
+          description: "An optional instruction describing what to extract (e.g., 'extract the price of the item')."
+        },
+        schema: {
+          type: "string",
+          description: "An optional string representing the Zod schema code for the expected output (e.g., 'z.object({ price: z.number() })'). This string will be evaluated as JavaScript code on the server side. WARNING: Evaluating user-provided code is dangerous and requires a secure implementation."
+        }
+      },
+      // instruction and schema are optional
     },
   },
   {
@@ -225,34 +235,76 @@ export async function handleToolCall(
 
     case "stagehand_extract":
       try {
-        const bodyText = await stagehand.page.evaluate(
-          () => document.body.innerText
-        );
-        const content = bodyText
-          .split("\n")
-          .map((line) => line.trim())
-          .filter((line) => {
-            if (!line) return false;
-            if (
-              (line.includes("{") && line.includes("}")) ||
-              line.includes("@keyframes") || // Remove CSS animations
-              line.match(/^\.[a-zA-Z0-9_-]+\s*{/) || // Remove CSS lines starting with .className {
-              line.match(/^[a-zA-Z-]+:[a-zA-Z0-9%\s\(\)\.,-]+;$/) // Remove lines like "color: blue;" or "margin: 10px;"
-            ) {
-              return false;
-            }
-            return true;
-          })
-          .map((line) => {
-            return line.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-              String.fromCharCode(parseInt(hex, 16))
-            );
-          });
+        const instruction = args.instruction as string | undefined;
+        const schemaString = args.schema as string | undefined;
 
-        return {
-          content: [{ type: "text", text: content.join("\n") }],
-          _meta: {}
-        };
+        let extractedContent;
+
+        if (instruction || schemaString) {
+            let schema = undefined;
+            if (schemaString) {
+                // WARNING: Evaluating user-provided strings as code is dangerous.
+                // A production system requires a secure method to handle schema definitions.
+                // This is a simplified example for demonstration.
+                // Requires 'import { z } from "zod";' at the top of the file.
+                try {
+                    // Assuming 'z' is imported and available in the scope for eval.
+                    // This is a security risk and should be replaced with a safer parsing mechanism.
+                    schema = eval(schemaString);
+                } catch (e) {
+                    throw new Error(`Failed to evaluate schema string: ${e instanceof Error ? e.message : String(e)}`);
+                }
+            }
+
+            extractedContent = await stagehand.page.extract({
+                instruction: instruction,
+                schema: schema
+            });
+
+            // stagehand.page.extract returns an object or null/undefined.
+            // We should return this as JSON or a string representation.
+            // If it's an object, stringify it. If it's null/undefined, return an empty string or a message.
+            const content = extractedContent !== undefined && extractedContent !== null
+                ? JSON.stringify(extractedContent, null, 2)
+                : "Extraction returned no content.";
+
+             return {
+               content: [{ type: "text", text: content }],
+               _meta: {}
+             };
+
+        } else {
+            // Fallback to old behavior if no instruction or schema is provided
+            const bodyText = await stagehand.page.evaluate(
+              () => document.body.innerText
+            );
+            const content = bodyText
+              .split("\n")
+              .map((line) => line.trim())
+              .filter((line) => {
+                if (!line) return false;
+                if (
+                  (line.includes("{") && line.includes("}")) ||
+                  line.includes("@keyframes") || // Remove CSS animations
+                  line.match(/^\.[a-zA-Z0-9_-]+\s*{/) || // Remove CSS lines starting with .className {
+                  line.match(/^[a-zA-Z-]+:[a-zA-Z0-9%\s\(\)\.,-]+;$/) // Remove lines like "color: blue;" or "margin: 10px;"
+                ) {
+                  return false;
+                }
+                return true;
+              })
+              .map((line) => {
+                return line.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+                  String.fromCharCode(parseInt(hex, 16))
+                );
+              });
+
+            return {
+              content: [{ type: "text", text: content.join("\n") }],
+              _meta: {}
+            };
+        }
+
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
