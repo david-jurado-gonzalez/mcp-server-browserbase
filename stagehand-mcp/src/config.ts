@@ -22,12 +22,22 @@ class Config {
       apiKey: process.env.GOOGLE_API_KEY,
     },
     localBrowserLaunchOptions: {
-      headless: false, // headless is inside localBrowserLaunchOptions
+      headless: false,
       viewport: {
         width: 1920,
         height: 1080,
       },
       cdpUrl: process.env.LOCAL_CDP_URL,
+      args: [
+        '--disable-web-security',
+        '--disable-same-origin-policy'
+      ],
+      ignoreHTTPSErrors: true,
+      bypassCSP: true,
+      locale: "es-ES",
+      permissions: ["notifications"],
+      acceptDownloads: true,
+      devtools: true,
     },
     // These will be overridden in the constructor if env is LOCAL
     browserbaseSessionCreateParams: {
