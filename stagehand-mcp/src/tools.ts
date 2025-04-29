@@ -134,13 +134,13 @@ export const TOOLS: Tool[] = [
 export async function handleToolCall(
   name: string,
   args: Record<string, unknown>,
-  // Eliminamos el parámetro stagehand ya que lo obtendremos del manager
+  // We remove the stagehand parameter as we will get it from the manager
   // stagehand: Stagehand
 ): Promise<CallToolResult> {
   let stagehand = getStagehandInstance();
 
-  // Si Stagehand no está inicializado y la herramienta no es stagehand_navigate,
-  // informamos al usuario que debe navegar primero.
+  // If Stagehand is not initialized and the tool is not stagehand_navigate,
+  // inform the user that they must navigate first.
   if (!stagehand && name !== "stagehand_navigate") {
     return {
       content: [{ type: "text", text: `Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page.` }],
@@ -149,7 +149,7 @@ export async function handleToolCall(
     };
   }
 
-  // Si Stagehand no está inicializado y la herramienta es stagehand_navigate, lo inicializamos.
+  // If Stagehand is not initialized and the tool is stagehand_navigate, we initialize it.
   if (!stagehand && name === "stagehand_navigate") {
     try {
       stagehand = await initializeStagehand();
@@ -163,8 +163,8 @@ export async function handleToolCall(
     }
   }
 
-  // Si Stagehand se inicializó correctamente (o ya existía), procedemos con la llamada a la herramienta.
-  // Si la inicialización falló, el bloque anterior ya habría retornado un error.
+  // If Stagehand was initialized successfully (or already existed), we proceed with the tool call.
+  // If initialization failed, the previous block would have already returned an error.
   if (!stagehand) {
        return {
           content: [{ type: "text", text: `An unexpected error occurred: Stagehand instance is null after initialization attempt.` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
@@ -177,9 +177,18 @@ export async function handleToolCall(
   switch (name) {
     case "stagehand_navigate":
       try {
-        await stagehand.page.goto(args.url as string);
+        const response = await stagehand.page.goto(args.url as string);
+
+        if (response && response.status() >= 400) {
+          return {
+            content: [{ type: "text", text: `Navigation error to ${args.url}: Status code ${response.status()}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+            _meta: {},
+            isError: true
+          };
+        }
+
         return {
-          content: [{ type: "text", text: `Navigating to: ${args.url}` }],
+          content: [{ type: "text", text: `Successful navigation to: ${args.url}` }],
           _meta: {}
         };
       } catch (error) {
@@ -264,7 +273,7 @@ export async function handleToolCall(
 
             extractedContent = await stagehand.page.extract({
                 instruction: instruction,
-                schema: schema as any // Forzar tipo a any para resolver error de compilación
+                schema: schema as any // Force type to any to resolve compilation error
             });
 
             // stagehand.page.extract returns an object or null/undefined.

@@ -27,7 +27,7 @@ class Config {
         width: parseInt(process.env.STAGEHAND_VIEWPORT_WIDTH || "1920", 10),
         height: parseInt(process.env.STAGEHAND_VIEWPORT_HEIGHT || "1080", 10),
       },
-      cdpUrl: process.env.LOCAL_CDP_URL, // Mantener cdpUrl de variable de entorno existente
+      // cdpUrl: process.env.LOCAL_CDP_URL, // Mantener cdpUrl de variable de entorno existente
       args: [
         ...(process.env.STAGEHAND_ARGS ? process.env.STAGEHAND_ARGS.split(/[ ,]+/) : []), // Añadir args desde variable de entorno
       ],
