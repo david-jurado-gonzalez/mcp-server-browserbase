@@ -28,7 +28,7 @@ export const TOOLS: Tool[] = [
   {
     name: "stagehand_act",
     description: `Performs an action on a web page element. This tool can perform an action based on a natural language instruction or based on a previously observed element's selector and method.
-      If 'selector' and 'method' are provided, the action will be performed on the element identified by the selector using the specified method.
+      If 'selector' and 'method' are provided, the action will be performed on the element identified by the selector using the specified method returned from a previous 'stagehand_observe' observation (this is the preferred action variant).
       If only 'action' and optionally 'variables' are provided, the action will be performed based on the natural language instruction.
       Act actions should be as atomic and specific as possible, i.e. "Click the sign in button" or "Type 'hello' into the search input" or
       "Scroll to the bottom of the page" or "Fill in the username field with 'john_doe'" or "Scroll the modal to the next chunk".

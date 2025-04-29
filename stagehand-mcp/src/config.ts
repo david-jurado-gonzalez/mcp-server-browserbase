@@ -58,26 +58,6 @@ class Config {
 
   constructor() {
     // No verificar variables de entorno requeridas aquí, se manejará en la inicialización de Stagehand si faltan.
-
-    // Force LOCAL settings regardless of environment variables detected
-    // Ensure Browserbase specific options are undefined for LOCAL env
-    // Esto ya se inicializa correctamente arriba, no es necesario anular aquí a menos que queramos forzarlo de nuevo.
-    // this.stagehand.browserbaseSessionCreateParams = undefined;
-    // this.stagehand.apiKey = undefined;
-    // this.stagehand.useAPI = false;
-
-    // Ensure localBrowserLaunchOptions is defined for LOCAL env
-    // Esto ya se inicializa correctamente arriba, no es necesario anular aquí a menos que queramos forzarlo de nuevo.
-    // if (!this.stagehand.localBrowserLaunchOptions) {
-    //      this.stagehand.localBrowserLaunchOptions = { headless: false, viewport: { width: 1280, height: 720 } };
-    // }
-    // Remove check for BROWSERBASE variables as we are forcing LOCAL
-    /*
-    if (this.stagehand.env === "BROWSERBASE") {
-        // This block is now unreachable because env is forced to LOCAL
-    }
-    */
-
     this.downloadsDir = path.join(process.cwd(), downloadsDirName);
     this.screenshotsDir = path.join(this.downloadsDir, screenshotsDirName);
   }
