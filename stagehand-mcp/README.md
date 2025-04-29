@@ -96,6 +96,8 @@ Las variables de entorno disponibles son:
 *   `STAGEHAND_PERMISSIONS`: Configura los permisos del navegador. Múltiples permisos pueden ser separados por comas (ej: `notifications`, `geolocation`).
 *   `STAGEHAND_DOM_SETTLE_TIMEOUT`: Tiempo máximo en milisegundos que Stagehand esperará a que el DOM se estabilice antes de realizar una acción.
 *   `STAGEHAND_VERBOSE`: Nivel de detalle del log de Stagehand (0: silent, 1: error, 2: warn, 3: info, 4: debug, 5: trace).
+*   `STAGEHAND_DOWNLOADS_DIR_NAME`: Especifica el nombre del directorio donde se guardarán las descargas. Es relativo al directorio de trabajo del servidor. Por defecto es "downloads".
+*   `STAGEHAND_SCREENSHOTS_DIR_NAME`: Especifica el nombre del directorio donde se guardarán las capturas de pantalla. Es relativo al directorio de descargas. Por defecto es "screenshots".
 
 Ejemplo de configuración en `mcp_settings.json`:
 

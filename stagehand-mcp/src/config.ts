@@ -7,8 +7,8 @@ import { logLineToString } from "./logging.js";
 // Cargar variables de entorno
 dotenv.config();
 
-const downloadsDirName = "downloads";
-const screenshotsDirName = "screenshots";
+const downloadsDirName = process.env.STAGEHAND_DOWNLOADS_DIR_NAME || "downloads";
+const screenshotsDirName = process.env.STAGEHAND_SCREENSHOTS_DIR_NAME || "screenshots";
 
 class Config {
   readonly downloadsDir: string;
