@@ -17,42 +17,35 @@ class Config {
   readonly stagehand: ConstructorParams = {
     // Force LOCAL environment regardless of env variables
     env: "LOCAL",
-    modelName: "gemini-2.0-flash",
+    modelName: (process.env.STAGEHAND_MODEL_NAME || "gemini-2.0-flash") as ConstructorParams['modelName'], // Añadir casting
     modelClientOptions: {
-      apiKey: process.env.GOOGLE_API_KEY,
+      apiKey: process.env.STAGEHAND_MODEL_API_KEY,
     },
     localBrowserLaunchOptions: {
-      headless: false,
+      headless: false, // Mantener headless en false por defecto para desarrollo local
       viewport: {
-        width: 1920,
-        height: 1080,
+        width: parseInt(process.env.STAGEHAND_VIEWPORT_WIDTH || "1920", 10),
+        height: parseInt(process.env.STAGEHAND_VIEWPORT_HEIGHT || "1080", 10),
       },
-      cdpUrl: process.env.LOCAL_CDP_URL,
+      cdpUrl: process.env.LOCAL_CDP_URL, // Mantener cdpUrl de variable de entorno existente
       args: [
-        '--disable-web-security',
-        '--disable-same-origin-policy'
+        ...(process.env.STAGEHAND_ARGS ? process.env.STAGEHAND_ARGS.split(/[ ,]+/) : []), // Añadir args desde variable de entorno
       ],
-      ignoreHTTPSErrors: true,
-      bypassCSP: true,
-      locale: "es-ES",
-      permissions: ["notifications"],
-      acceptDownloads: true,
-      devtools: true,
+      ignoreHTTPSErrors: true, // Mantener por defecto
+      bypassCSP: true, // Mantener por defecto
+      locale: process.env.STAGEHAND_LOCALE || "es-ES",
+      permissions: [
+        ...(process.env.STAGEHAND_PERMISSIONS ? process.env.STAGEHAND_PERMISSIONS.split(/[ ,]+/) : []), // Añadir permissions desde variable de entorno
+      ],
+      acceptDownloads: true, // Mantener por defecto
+      devtools: true, // Mantener por defecto
     },
     // These will be overridden in the constructor if env is LOCAL
-    browserbaseSessionCreateParams: {
-       projectId: process.env.BROWSERBASE_PROJECT_ID || "dummy-project-id", // Provide dummy or ensure undefined later
-       browserSettings: {
-         viewport: {
-           width: 1920,
-           height: 1080,
-         },
-       },
-    },
-    apiKey: process.env.BROWSERBASE_API_KEY,
+    browserbaseSessionCreateParams: undefined, // Anulado en el constructor
+    apiKey: undefined, // Anulado en el constructor
     // Initialize other properties with default or undefined if not provided
-    verbose: 1,
-    domSettleTimeoutMs: 30000,
+    verbose: parseInt(process.env.STAGEHAND_VERBOSE || "1", 10) as ConstructorParams['verbose'], // Añadir casting
+    domSettleTimeoutMs: parseInt(process.env.STAGEHAND_DOM_SETTLE_TIMEOUT || "30000", 10), // Parametrizar domSettleTimeoutMs
     browserbaseSessionID: undefined,
     systemPrompt: undefined,
     useAPI: false, // Default to false, ensure it stays false for LOCAL
@@ -64,24 +57,20 @@ class Config {
   };
 
   constructor() {
-    // Verificar variables de entorno requeridas (non-Browserbase)
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      throw new Error("GOOGLE_GENERATIVE_AI_API_KEY no está definida en el archivo .env");
-    }
-    if (!process.env.GOOGLE_API_KEY) {
-      throw new Error("GOOGLE_API_KEY no está definida en el archivo .env");
-    }
+    // No verificar variables de entorno requeridas aquí, se manejará en la inicialización de Stagehand si faltan.
 
     // Force LOCAL settings regardless of environment variables detected
     // Ensure Browserbase specific options are undefined for LOCAL env
-    this.stagehand.browserbaseSessionCreateParams = undefined;
-    this.stagehand.apiKey = undefined;
-    this.stagehand.useAPI = false;
+    // Esto ya se inicializa correctamente arriba, no es necesario anular aquí a menos que queramos forzarlo de nuevo.
+    // this.stagehand.browserbaseSessionCreateParams = undefined;
+    // this.stagehand.apiKey = undefined;
+    // this.stagehand.useAPI = false;
 
     // Ensure localBrowserLaunchOptions is defined for LOCAL env
-    if (!this.stagehand.localBrowserLaunchOptions) {
-         this.stagehand.localBrowserLaunchOptions = { headless: false, viewport: { width: 1280, height: 720 } };
-    }
+    // Esto ya se inicializa correctamente arriba, no es necesario anular aquí a menos que queramos forzarlo de nuevo.
+    // if (!this.stagehand.localBrowserLaunchOptions) {
+    //      this.stagehand.localBrowserLaunchOptions = { headless: false, viewport: { width: 1280, height: 720 } };
+    // }
     // Remove check for BROWSERBASE variables as we are forcing LOCAL
     /*
     if (this.stagehand.env === "BROWSERBASE") {
