@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2021",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowImportingTsExtensions": false,
-    "noEmit": false
+    "noEmit": false,
+    "lib": ["es2015", "es2022", "dom"]
   },
   "include": ["*.ts", "api", "examples/run.ts"],
   "exclude": ["node_modules", "dist"]
