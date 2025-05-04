@@ -1,6 +1,4 @@
 import { Stagehand, Page } from "@browserbasehq/stagehand";
-import StagehandConfig from "./stagehand.config.js";
-import { z } from "zod";
 
 
 // tsc -p stagehand/stagehand_dave/tsconfig.json
@@ -84,7 +82,7 @@ async function runMultiBrowserTest() {
 
     await page1.waitForTimeout(4000);
     await page2.waitForTimeout(2000);
-    
+
     console.log("Multi-browser test completed successfully.");
 
   } catch (error) {

@@ -2,42 +2,86 @@ import { Stagehand } from "@browserbasehq/stagehand";
 import config from "./config.js";
 import { log } from "./logging.js";
 
-let stagehandInstance: Stagehand | null = null;
+const stagehandInstances = new Map<string, Stagehand>();
+let lastCreatedAlias: string | null = null;
+let instanceCounter = 0;
 
-export function getStagehandInstance(): Stagehand | null {
-  return stagehandInstance;
-}
-
-export async function initializeStagehand(): Promise<Stagehand> {
-  if (stagehandInstance === null) {
-    log("Initializing Stagehand...", "info");
-    try {
-      stagehandInstance = new Stagehand(config.stagehand);
-      await stagehandInstance.init();
-      log("Stagehand initialized successfully.", "info");
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      log(`Failed to initialize Stagehand: ${errorMsg}`, "error");
-      console.error(`Failed to initialize Stagehand: ${errorMsg}`);
-      // No salir del proceso aquí, permitir que el error se maneje en la llamada a la herramienta
-      throw new Error(`Failed to initialize Stagehand: ${errorMsg}`);
-    }
+export function getStagehandInstance(alias?: string): Stagehand | undefined {
+  if (alias) {
+    return stagehandInstances.get(alias);
   }
-  return stagehandInstance;
+  if (lastCreatedAlias) {
+    return stagehandInstances.get(lastCreatedAlias);
+  }
+  return undefined;
 }
 
-export async function closeStagehand(): Promise<void> {
-  if (stagehandInstance !== null) {
-    log("Closing Stagehand...", "info");
-    try {
-      await stagehandInstance.close();
-      log("Stagehand closed successfully.", "info");
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      log(`Error closing Stagehand: ${errorMsg}`, "error");
-      console.error(`Error closing Stagehand: ${errorMsg}`);
-    } finally {
-      stagehandInstance = null;
+export async function createStagehandInstance(alias?: string): Promise<Stagehand> {
+  let instanceAlias = alias;
+  if (!instanceAlias) {
+    instanceCounter++;
+    instanceAlias = instanceCounter.toString();
+    log(`No alias provided, generating default alias: ${instanceAlias}`, "info");
+  }
+
+  if (stagehandInstances.has(instanceAlias)) {
+    log(`Stagehand instance with alias "${instanceAlias}" already exists. Returning existing instance.`, "info");
+    return stagehandInstances.get(instanceAlias)!;
+  }
+
+  log(`Creating and initializing Stagehand instance with alias "${instanceAlias}"...`, "info");
+  try {
+    const stagehand = new Stagehand(config.stagehand);
+    await stagehand.init();
+    stagehandInstances.set(instanceAlias, stagehand);
+    lastCreatedAlias = instanceAlias;
+    log(`Stagehand instance with alias "${instanceAlias}" initialized successfully.`, "info");
+    return stagehand;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    log(`Failed to initialize Stagehand instance with alias "${instanceAlias}": ${errorMsg}`, "error");
+    console.error(`Failed to initialize Stagehand instance with alias "${instanceAlias}": ${errorMsg}`);
+    throw new Error(`Failed to initialize Stagehand instance with alias "${instanceAlias}": ${errorMsg}`);
+  }
+}
+
+export async function closeStagehand(alias?: string): Promise<void> {
+  if (alias) {
+    const stagehand = stagehandInstances.get(alias);
+    if (stagehand) {
+      log(`Closing Stagehand instance with alias "${alias}"...`, "info");
+      try {
+        await stagehand.close();
+        log(`Stagehand instance with alias "${alias}" closed successfully.`, "info");
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        log(`Error closing Stagehand instance with alias "${alias}": ${errorMsg}`, "error");
+        console.error(`Error closing Stagehand instance with alias "${alias}": ${errorMsg}`);
+      } finally {
+        stagehandInstances.delete(alias);
+        if (lastCreatedAlias === alias) {
+          lastCreatedAlias = null;
+        }
+      }
+    } else {
+      log(`No Stagehand instance found with alias "${alias}".`, "info");
     }
+  } else {
+    log("Closing all Stagehand instances...", "info");
+    for (const [alias, stagehand] of stagehandInstances.entries()) {
+      log(`Closing Stagehand instance with alias "${alias}"...`, "info");
+      try {
+        await stagehand.close();
+        log(`Stagehand instance with alias "${alias}" closed successfully.`, "info");
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        log(`Error closing Stagehand instance with alias "${alias}": ${errorMsg}`, "error");
+        console.error(`Error closing Stagehand instance with alias "${alias}": ${errorMsg}`);
+      }
+    }
+    stagehandInstances.clear();
+    lastCreatedAlias = null;
+    instanceCounter = 0;
+    log("All Stagehand instances closed.", "info");
   }
 }

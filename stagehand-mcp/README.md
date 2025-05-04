@@ -1,8 +1,9 @@
 # Stagehand MCP Server
 
-Servidor MCP que proporciona herramientas de automatización de navegador basadas en Stagehand.
+Servidor MCP que proporciona herramientas de automatización de navegador basadas en Stagehand, con soporte para múltiples instancias de navegador.
 
 ## Instalación
+
 0. Construir:
 
 ```bash
@@ -49,14 +50,54 @@ STAGEHAND_DOM_SETTLE_TIMEOUT=30000
 # Nivel de detalle del log (0: silent, 1: error, 2: warn, 3: info, 4: debug, 5: trace)
 STAGEHAND_VERBOSE=1
 ```
+
+## Soporte para Múltiples Instancias y Alias
+
+Este servidor Stagehand MCP ahora soporta la gestión de múltiples instancias de navegador Stagehand simultáneamente. Cada instancia puede ser identificada y referenciada utilizando un `alias`.
+
+- Al usar la herramienta `stagehand_navigate`, se puede proporcionar un `alias` opcional. Si se proporciona un alias y ya existe una instancia con ese alias, se navegará en esa instancia existente. Si no existe, se creará una nueva instancia con ese alias. Si no se proporciona un alias, se creará una nueva instancia con un alias generado automáticamente (un contador numérico: "1", "2", "3", etc.).
+- Para las demás herramientas (`stagehand_act`, `stagehand_extract`, `stagehand_observe`, `screenshot`, `stagehand_agent_execute`), se puede especificar un `alias` opcional para indicar en qué instancia de Stagehand se debe ejecutar la herramienta.
+- Si no se especifica un `alias` para estas herramientas, la operación se realizará en la última instancia de Stagehand que fue creada o utilizada (la última instancia "activa").
+
+Esto permite controlar y automatizar múltiples páginas web de forma independiente dentro de la misma sesión del servidor MCP.
+
 ## Herramientas Disponibles
 
-- **stagehand_navigate**: Navega a una URL específica en el navegador
-- **stagehand_act**: Realiza acciones en elementos de la página
-- **stagehand_cachedact**: Realiza acciones observadas en elementos de la página
-- **stagehand_extract**: Extrae texto de la página actual
-- **stagehand_observe**: Observa elementos en la página
-- **screenshot**: Toma capturas de pantalla (se guardan en downloads/screenshots)
+Las herramientas disponibles a través de este servidor MCP son:
+
+- **stagehand_navigate**: Navega a una URL específica en una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, crea una nueva instancia con un alias por defecto.
+    - **Parámetros:**
+        - `url` (string, requerido): La URL a navegar.
+        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar o crear.
+
+- **stagehand_act**: Realiza acciones en elementos de la página de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
+    - **Parámetros:**
+        - `action` (string, opcional): Instrucción en lenguaje natural para la acción.
+        - `variables` (object, opcional): Variables para la acción.
+        - `selector` (string, opcional): Selector del elemento (usar con `method` y `description`).
+        - `method` (string, opcional): Método a aplicar (`click`, `type`, `hover`, `scroll`, `select`).
+        - `description` (string, opcional): Descripción del elemento.
+        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+
+- **stagehand_extract**: Extrae información de la página actual de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
+    - **Parámetros:**
+        - `instruction` (string, opcional): Instrucción para la extracción.
+        - `schema` (string, opcional): Esquema JSON para validar y estructurar la salida.
+        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+
+- **stagehand_observe**: Observa elementos en la página de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
+    - **Parámetros:**
+        - `instruction` (string, requerido): Instrucción para la observación.
+        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+
+- **screenshot**: Toma una captura de pantalla de la página actual de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa. Las capturas se guardan en el directorio configurado (por defecto `downloads/screenshots`).
+    - **Parámetros:**
+        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+
+- **stagehand_agent_execute**: Ejecuta una instrucción en lenguaje natural utilizando el agente Stagehand en una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
+    - **Parámetros:**
+        - `instruction` (string, requerido): La instrucción para el agente.
+        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
 
 ## Estructura del Proyecto
 
@@ -65,12 +106,18 @@ stagehand-mcp/
 ├── src/
 │   ├── config.ts      # Configuración del servidor
 │   ├── index.ts       # Punto de entrada
-│   └── tools.ts       # Implementación de herramientas
+│   ├── logging.ts     # Configuración y utilidades de logging
+│   ├── prompts.ts     # Prompts utilizados por Stagehand (si aplica)
+│   ├── resources.ts   # Definición de recursos MCP (ej: capturas de pantalla)
+│   ├── server.ts      # Configuración del servidor MCP y registro de herramientas/recursos
+│   ├── stagehandManager.ts # Gestión de múltiples instancias de Stagehand
+│   ├── tools.ts       # Implementación de herramientas MCP
+│   └── utils.ts       # Funciones de utilidad
 ├── downloads/
-│   └── screenshots/   # Capturas de pantalla
+│   └── screenshots/   # Capturas de pantalla guardadas
 ├── package.json
 ├── tsconfig.json
-└── .env
+└── .env               # Variables de entorno para configuración
 ```
 
 ## Uso
@@ -135,4 +182,3 @@ Ejemplo de configuración en `mcp_settings.json`:
     }
   }
 }
-```

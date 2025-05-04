@@ -1,11 +1,11 @@
 import { Stagehand } from "@browserbasehq/stagehand";
 import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { getServerInstance, operationLogs } from "./logging.js";
+import { getServerInstance, operationLogs, log } from "./logging.js";
 import path from "path";
 import config from "./config.js";
 import { screenshots } from "./resources.js";
 import { drawObserveOverlay, clearOverlays } from "./utils.js";
-import { getStagehandInstance, initializeStagehand } from "./stagehandManager.js";
+import { getStagehandInstance, createStagehandInstance } from "./stagehandManager.js";
 
 import { Ajv } from 'ajv';
 
@@ -21,6 +21,7 @@ export const TOOLS: Tool[] = [
       type: "object",
       properties: {
         url: { type: "string", description: "The URL to navigate to" },
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
       },
       required: ["url"],
     },
@@ -36,43 +37,44 @@ export const TOOLS: Tool[] = [
       asking him to call me". Only use act when you are sure that the action is going to be successful.
       If you are not sure, observe first to see if the action is going to be successful.`,
     inputSchema: {
-      type: "object",
-      properties: {
-        action: {
-          type: "string",
-          description: `The natural language instruction for the action. Required if 'selector' and 'method' are not provided. Should be as atomic and specific as possible,
-          i.e. 'Click the sign in button' or 'Type 'hello' into the search input'. AVOID actions that are more than one
-          step, i.e. 'Order me pizza' or 'Send an email to Paul asking him to call me'. The instruction should be just as specific as possible,
-          and have a strong correlation to the text on the page. If unsure, use observe before using act."`,
-        },
-        variables: {
-          type: "object",
-          additionalProperties: true,
-          description: `Variables used in the action template. ONLY use variables if you're dealing
-            with sensitive data or dynamic content. For example, if you're logging in to a website,
-            you can use a variable for the password. When using variables, you MUST have the variable
-            key in the action template. For example: {"action": "Fill in the %username% into the username field", "variables": {"username": "dave_jury"}}`,
-        },
-        selector: {
-          type: "string",
-          description: `The path returned from an observation. Required if 'action' is not provided. For example: /html/body/div[1]/div[1]/a`,
-        },
-        method: {
-          type: "string",
-          description: `The method to use on the element identified by the selector. Required if 'action' is not provided.
-            click: To click on an item.
-            type: To type text in an input field.
-            hover: To hover over an element.
-            scroll: To navigate to an element.
-            select: To select an option from a drop-down menu.`,
-        },
-        description: {
-          type: "string",
-          description: `References the UI element the cached action will use. Required if 'action' is not provided. For example: "The quickstart link" or "textbox: Username" or "button: Submit" or "link: Sign in".`,
-        },
-      },
-      required: [],
-    },
+       type: "object",
+       properties: {
+         action: {
+           type: "string",
+           description: `The natural language instruction for the action. Required if 'selector' and 'method' are not provided. Should be as atomic and specific as possible,
+           i.e. 'Click the sign in button' or 'Type 'hello' into the search input'. AVOID actions that are more than one
+           step, i.e. 'Order me pizza' or 'Send an email to Paul asking him to call me'. The instruction should be just as specific as possible,
+           and have a strong correlation to the text on the page. If unsure, use observe before using act."`,
+         },
+         variables: {
+           type: "object",
+           additionalProperties: true,
+           description: `Variables used in the action template. ONLY use variables if you're dealing
+             with sensitive data or dynamic content. For example, if you're logging in to a website,
+             you can use a variable for the password. When using variables, you MUST have the variable
+             key in the action template. For example: {"action": "Fill in the %username% into the username field", "variables": {"username": "dave_jury"}}`,
+         },
+         selector: {
+           type: "string",
+           description: `The path returned from an observation. Required if 'action' is not provided. For example: /html/body/div[1]/div[1]/a`,
+         },
+         method: {
+           type: "string",
+           description: `The method to use on the element identified by the selector. Required if 'action' is not provided.
+             click: To click on an item.
+             type: To type text in an input field.
+             hover: To hover over an element.
+             scroll: To navigate to an element.
+             select: To select an option from a drop-down menu.`,
+         },
+         description: {
+           type: "string",
+           description: `References the UI element the cached action will use. Required if 'action' is not provided. For example: "The quickstart link" or "textbox: Username" or "button: Submit" or "link: Sign in".`,
+         },
+         alias: { type: "string", description: "Optional alias for the Stagehand instance" },
+       },
+       required: [],
+     },
   },
   {
     name: "stagehand_extract",
@@ -87,7 +89,8 @@ export const TOOLS: Tool[] = [
         schema: {
           type: "string",
           description: "An optional string representing a valid JSON Schema for the expected output (e.g., '{\"type\": \"object\", \"properties\": {\"price\": {\"type\": \"number\"}}}'). This schema will be used to validate and structure the extracted data."
-        }
+        },
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
       },
       // instruction and schema are optional
     },
@@ -104,6 +107,7 @@ export const TOOLS: Tool[] = [
           description:
             "Instruction for observation (e.g., 'Click the quickstart link'). This instruction must be extremely specific.",
         },
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
       },
       required: ["instruction"],
     },
@@ -114,7 +118,9 @@ export const TOOLS: Tool[] = [
       "Takes a screenshot of the current page. Use this tool to learn where you are on the page when controlling the browser with Stagehand. Only use this tool when the other tools are not sufficient to get the information you need.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
+      },
     },
   },
   {
@@ -124,6 +130,7 @@ export const TOOLS: Tool[] = [
       type: "object",
       properties: {
         instruction: { type: "string", description: "The instruction for the Stagehand agent." },
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
       },
       required: ["instruction"],
     },
@@ -137,7 +144,8 @@ export async function handleToolCall(
   // We remove the stagehand parameter as we will get it from the manager
   // stagehand: Stagehand
 ): Promise<CallToolResult> {
-  let stagehand = getStagehandInstance();
+  const alias = args.alias as string | undefined;
+  let stagehand = getStagehandInstance(alias);
 
   // If Stagehand is not initialized and the tool is not stagehand_navigate,
   // inform the user that they must navigate first.
@@ -149,10 +157,10 @@ export async function handleToolCall(
     };
   }
 
-  // If Stagehand is not initialized and the tool is stagehand_navigate, we initialize it.
+  // If Stagehand is not initialized and the tool is stagehand_navigate, we create a new instance.
   if (!stagehand && name === "stagehand_navigate") {
     try {
-      stagehand = await initializeStagehand();
+      stagehand = await createStagehandInstance(alias);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
        return {
@@ -161,7 +169,11 @@ export async function handleToolCall(
           isError: true
         };
     }
+  } else if (stagehand && name === "stagehand_navigate") {
+     // If Stagehand instance exists and the tool is stagehand_navigate, navigate the existing instance
+     log(`Stagehand instance with alias "${alias}" already exists. Navigating existing instance.`, "info");
   }
+
 
   // If Stagehand was initialized successfully (or already existed), we proceed with the tool call.
   // If initialization failed, the previous block would have already returned an error.
