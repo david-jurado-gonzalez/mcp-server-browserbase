@@ -3,6 +3,11 @@
 Servidor MCP que proporciona herramientas de automatización de navegador basadas en Stagehand.
 
 ## Instalación
+0. Construir:
+
+```bash
+npm run build
+```
 
 1. Instalar dependencias:
 ```bash
