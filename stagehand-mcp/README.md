@@ -1,157 +1,158 @@
 # Stagehand MCP Server
 
-Servidor MCP que proporciona herramientas de automatización de navegador basadas en Stagehand, con soporte para múltiples instancias de navegador.
+MCP server that provides browser automation tools based on Stagehand, with support for multiple browser instances.
 
-## Instalación
+## Installation
 
-0. Construir:
+0.  Build:
+    ```bash
+    npm run build
+    ```
 
-```bash
-npm run build
-```
+1.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-1. Instalar dependencias:
-```bash
-npm install
-```
+2.  Create .env file:
+    ```bash
+    cp .env.example .env
+    ```
 
-2. Crear archivo .env:
-```bash
-cp .env.example .env
-```
+3.  Configure environment variables in the .env file:
+    ```bash
+    # Stagehand MCP Configuration (configurable from mcp_settings.json)
+    # Specifies the model name to use (e.g., gemini-2.0-flash, gpt-4o)
+    STAGEHAND_MODEL_NAME=gemini-2.0-flash
 
-3. Configurar las variables de entorno en el archivo .env:
-```bash
-# Configuración de Stagehand MCP (parametrizable desde mcp_settings.json)
-# Especifica el nombre del modelo a usar (ej: gemini-2.0-flash, gpt-4o)
-STAGEHAND_MODEL_NAME=gemini-2.0-flash
+    # API key for the model (use STAGEHAND_MODEL_API_KEY instead of GOOGLE_API_KEY)
+    STAGEHAND_MODEL_API_KEY=your-api-key
 
-# Clave de API para el modelo (usar STAGEHAND_MODEL_API_KEY en lugar de GOOGLE_API_KEY)
-STAGEHAND_MODEL_API_KEY=your-api-key
+    # Local browser viewport dimensions
+    STAGEHAND_VIEWPORT_WIDTH=1920
+    STAGEHAND_VIEWPORT_HEIGHT=1080
 
-# Dimensiones del viewport del navegador local
-STAGEHAND_VIEWPORT_WIDTH=1920
-STAGEHAND_VIEWPORT_HEIGHT=1080
+    # Additional arguments for Chromium (space or comma-separated)
+    # Example: STAGEHAND_ARGS=--user-data-dir="C:\test-profile" --no-sandbox
+    STAGEHAND_ARGS=--disable-web-security,--disable-same-origin-policy
 
-# Argumentos adicionales para Chromium (separados por espacios o comas)
-# Ejemplo: STAGEHAND_ARGS=--user-data-dir="C:\test-profile" --no-sandbox
-STAGEHAND_ARGS=--disable-web-security,--disable-same-origin-policy
+    # Browser locale
+    STAGEHAND_LOCALE=en-US
 
-# Locale del navegador
-STAGEHAND_LOCALE=es-ES
+    # Browser permissions (comma-separated)
+    # Example: STAGEHAND_PERMISSIONS=notifications,geolocation
+    STAGEHAND_PERMISSIONS=notifications
 
-# Permisos del navegador (separados por comas)
-# Ejemplo: STAGEHAND_PERMISSIONS=notifications,geolocation
-STAGEHAND_PERMISSIONS=notifications
+    # Maximum time to wait for the DOM to stabilize (in ms)
+    STAGEHAND_DOM_SETTLE_TIMEOUT=30000
 
-# Tiempo máximo de espera para que el DOM se estabilice (en ms)
-STAGEHAND_DOM_SETTLE_TIMEOUT=30000
+    # Log detail level (0: silent, 1: error, 2: warn, 3: info, 4: debug, 5: trace)
+    STAGEHAND_VERBOSE=1
+    ```
 
-# Nivel de detalle del log (0: silent, 1: error, 2: warn, 3: info, 4: debug, 5: trace)
-STAGEHAND_VERBOSE=1
-```
+## Support for Multiple Instances and Aliases
 
-## Soporte para Múltiples Instancias y Alias
+This Stagehand MCP server now supports managing multiple Stagehand browser instances simultaneously. Each instance can be identified and referenced using an `alias`.
 
-Este servidor Stagehand MCP ahora soporta la gestión de múltiples instancias de navegador Stagehand simultáneamente. Cada instancia puede ser identificada y referenciada utilizando un `alias`.
+-   When using the `stagehand_navigate` tool, an optional `alias` can be provided. If an alias is provided and an instance with that alias already exists, navigation will occur in that existing instance. If it doesn't exist, a new instance with that alias will be created. If no alias is provided, a new instance will be created with an automatically generated alias (a numeric counter: "1", "2", "3", etc.).
+-   For other tools (`stagehand_act`, `stagehand_extract`, `stagehand_observe`, `screenshot`, `stagehand_agent_execute`), an optional `alias` can be specified to indicate which Stagehand instance the tool should operate on.
+-   If no `alias` is specified for these tools, the operation will be performed on the last Stagehand instance that was created or used (the last "active" instance).
 
-- Al usar la herramienta `stagehand_navigate`, se puede proporcionar un `alias` opcional. Si se proporciona un alias y ya existe una instancia con ese alias, se navegará en esa instancia existente. Si no existe, se creará una nueva instancia con ese alias. Si no se proporciona un alias, se creará una nueva instancia con un alias generado automáticamente (un contador numérico: "1", "2", "3", etc.).
-- Para las demás herramientas (`stagehand_act`, `stagehand_extract`, `stagehand_observe`, `screenshot`, `stagehand_agent_execute`), se puede especificar un `alias` opcional para indicar en qué instancia de Stagehand se debe ejecutar la herramienta.
-- Si no se especifica un `alias` para estas herramientas, la operación se realizará en la última instancia de Stagehand que fue creada o utilizada (la última instancia "activa").
+This allows controlling and automating multiple web pages independently within the same MCP server session.
 
-Esto permite controlar y automatizar múltiples páginas web de forma independiente dentro de la misma sesión del servidor MCP.
+## Available Tools
 
-## Herramientas Disponibles
+The tools available through this MCP server are:
 
-Las herramientas disponibles a través de este servidor MCP son:
+-   **`stagehand_navigate`**: Navigates to a specific URL in a browser instance.
+    -   **Parameters:**
+        -   `url` (string, required): The URL to navigate to.
+        -   `alias` (string, optional): The alias of the Stagehand instance to use or create.
+    -   **Critical Usage Note:** After any navigation, **you MUST immediately use `stagehand_observe`** to understand the current state of the page and handle any dynamic elements (pop-ups, cookie banners, etc.) before proceeding with other actions.
 
-- **stagehand_navigate**: Navega a una URL específica en una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, crea una nueva instancia con un alias por defecto.
-    - **Parámetros:**
-        - `url` (string, requerido): La URL a navegar.
-        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar o crear.
+-   **`stagehand_observe`**: Observes elements on the current page of a browser instance. This is a **critical first step** after any page load or significant page content change (e.g., after `stagehand_navigate` or an action via `stagehand_act` that alters the page). It identifies actionable elements, pop-ups, and other dynamic content.
+    -   **Parameters:**
+        -   `instruction` (string, required): Instruction for the observation (e.g., "observe all interactive elements", "check for cookie consent banner").
+        -   `alias` (string, optional): The alias of the Stagehand instance to use.
+    -   **Output:** Provides a list of interactable elements, including their selectors and descriptions, which are essential for reliable use of `stagehand_act`.
 
-- **stagehand_act**: Realiza acciones en elementos de la página de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
-    - **Parámetros:**
-        - `action` (string, opcional): Instrucción en lenguaje natural para la acción.
-        - `variables` (object, opcional): Variables para la acción.
-        - `selector` (string, opcional): Selector del elemento (usar con `method` y `description`).
-        - `method` (string, opcional): Método a aplicar (`click`, `type`, `hover`, `scroll`, `select`).
-        - `description` (string, opcional): Descripción del elemento.
-        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+-   **`stagehand_act`**: Performs actions on page elements of a browser instance. **Always use `stagehand_observe` immediately before `stagehand_act`** to ensure you are interacting with currently available and relevant elements, especially after page loads or changes.
+    -   **Parameters:**
+        -   `action` (string, optional): Natural language instruction for the action. Use when `stagehand_observe` confirms the element is clear and unambiguous.
+        -   `variables` (object, optional): Variables for the action, especially for sensitive data.
+        -   `selector` (string, optional): Element selector (use with `method` and `description`). **Must be obtained from a recent `stagehand_observe` call.**
+        -   `method` (string, opcional): Method to apply (`click`, `type`, `hover`, `scroll`, `select`).
+        -   `description` (string, opcional): Description of the element, from `stagehand_observe`.
+        -   `alias` (string, opcional): The alias of the Stagehand instance to use.
 
-- **stagehand_extract**: Extrae información de la página actual de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
-    - **Parámetros:**
-        - `instruction` (string, opcional): Instrucción para la extracción.
-        - `schema` (string, opcional): Esquema JSON para validar y estructurar la salida.
-        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+-   **`stagehand_extract`**: Extracts information from the current page of a browser instance.
+    -   **Parameters:**
+        -   `instruction` (string, optional): Instruction for the extraction.
+        -   `schema` (string, optional): JSON schema to validate and structure the output.
+        -   `alias` (string, optional): The alias of the Stagehand instance to use.
 
-- **stagehand_observe**: Observa elementos en la página de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
-    - **Parámetros:**
-        - `instruction` (string, requerido): Instrucción para la observación.
-        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+-   **`screenshot`**: Takes a screenshot of the current page of a browser instance. Screenshots are saved in the configured directory (default `downloads/screenshots`).
+    -   **Parameters:**
+        -   `alias` (string, optional): The alias of the Stagehand instance to use.
 
-- **screenshot**: Toma una captura de pantalla de la página actual de una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa. Las capturas se guardan en el directorio configurado (por defecto `downloads/screenshots`).
-    - **Parámetros:**
-        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
+-   **`stagehand_agent_execute`**: Executes a natural language instruction using the Stagehand agent in a browser instance.
+    -   **Parameters:**
+        -   `instruction` (string, required): The instruction for the agent.
+        -   `alias` (string, optional): The alias of the Stagehand instance to use.
 
-- **stagehand_agent_execute**: Ejecuta una instrucción en lenguaje natural utilizando el agente Stagehand en una instancia de navegador. Acepta un parámetro opcional `alias` para especificar la instancia. Si no se proporciona, usa la última instancia activa.
-    - **Parámetros:**
-        - `instruction` (string, requerido): La instrucción para el agente.
-        - `alias` (string, opcional): El alias de la instancia de Stagehand a utilizar.
-
-## Estructura del Proyecto
+## Project Structure
 
 ```
 stagehand-mcp/
 ├── src/
-│   ├── config.ts      # Configuración del servidor
-│   ├── index.ts       # Punto de entrada
-│   ├── logging.ts     # Configuración y utilidades de logging
-│   ├── prompts.ts     # Prompts utilizados por Stagehand (si aplica)
-│   ├── resources.ts   # Definición de recursos MCP (ej: capturas de pantalla)
-│   ├── server.ts      # Configuración del servidor MCP y registro de herramientas/recursos
-│   ├── stagehandManager.ts # Gestión de múltiples instancias de Stagehand
-│   ├── tools.ts       # Implementación de herramientas MCP
-│   └── utils.ts       # Funciones de utilidad
+│   ├── config.ts      # Server configuration
+│   ├── index.ts       # Entry point
+│   ├── logging.ts     # Logging configuration and utilities
+│   ├── prompts.ts     # Prompts used by Stagehand (if applicable)
+│   ├── resources.ts   # MCP resource definitions (e.g., screenshots)
+│   ├── server.ts      # MCP server setup and tool/resource registration
+│   ├── stagehandManager.ts # Management of multiple Stagehand instances
+│   ├── tools.ts       # MCP tool implementations
+│   └── utils.ts       # Utility functions
 ├── downloads/
-│   └── screenshots/   # Capturas de pantalla guardadas
+│   └── screenshots/   # Saved screenshots
 ├── package.json
 ├── tsconfig.json
-└── .env               # Variables de entorno para configuración
+└── .env               # Environment variables for configuration
 ```
 
-## Uso
+## Usage
 
-1. Iniciar el servidor:
-```bash
-npm start
-```
+1.  Start the server:
+    ```bash
+    npm start
+    ```
 
-2. Depuración con Chrome DevTools:
-```bash
-npm run debug
-npm run start:debug
-```
+2.  Debugging with Chrome DevTools:
+    ```bash
+    npm run debug
+    npm run start:debug
+    ```
 
-## Configuración con Variables de Entorno
+## Configuration with Environment Variables
 
-El servidor Stagehand MCP puede ser configurado utilizando variables de entorno definidas en la sección `env` de su configuración en `mcp_settings.json`. Esto permite parametrizar varios aspectos del comportamiento de Stagehand.
+The Stagehand MCP server can be configured using environment variables defined in the `env` section of its configuration in `mcp_settings.json`. This allows parameterizing various aspects of Stagehand's behavior.
 
-Las variables de entorno disponibles son:
+Available environment variables:
 
-*   `STAGEHAND_MODEL_NAME`: Especifica el nombre del modelo de lenguaje a utilizar (ej: `gemini-2.0-flash`, `gpt-4o`).
-*   `STAGEHAND_MODEL_API_KEY`: Clave de API para el modelo de lenguaje configurado.
-*   `STAGEHAND_VIEWPORT_WIDTH`: Ancho del viewport del navegador local en píxeles.
-*   `STAGEHAND_VIEWPORT_HEIGHT`: Alto del viewport del navegador local en píxeles.
-*   `STAGEHAND_ARGS`: Argumentos adicionales para pasar a la instancia de Chromium. Múltiples argumentos pueden ser separados por espacios o comas (ej: `--user-data-dir="C:\test-profile" --no-sandbox`).
-*   `STAGEHAND_LOCALE`: Configura el locale del navegador (ej: `es-ES`, `en-US`).
-*   `STAGEHAND_PERMISSIONS`: Configura los permisos del navegador. Múltiples permisos pueden ser separados por comas (ej: `notifications`, `geolocation`).
-*   `STAGEHAND_DOM_SETTLE_TIMEOUT`: Tiempo máximo en milisegundos que Stagehand esperará a que el DOM se estabilice antes de realizar una acción.
-*   `STAGEHAND_VERBOSE`: Nivel de detalle del log de Stagehand (0: silent, 1: error, 2: warn, 3: info, 4: debug, 5: trace).
-*   `STAGEHAND_DOWNLOADS_DIR_NAME`: Especifica el nombre del directorio donde se guardarán las descargas. Es relativo al directorio de trabajo del servidor. Por defecto es "downloads".
-*   `STAGEHAND_SCREENSHOTS_DIR_NAME`: Especifica el nombre del directorio donde se guardarán las capturas de pantalla. Es relativo al directorio de descargas. Por defecto es "screenshots".
+*   `STAGEHAND_MODEL_NAME`: Specifies the language model name to use (e.g., `gemini-2.0-flash`, `gpt-4o`).
+*   `STAGEHAND_MODEL_API_KEY`: API key for the configured language model.
+*   `STAGEHAND_VIEWPORT_WIDTH`: Width of the local browser viewport in pixels.
+*   `STAGEHAND_VIEWPORT_HEIGHT`: Height of the local browser viewport in pixels.
+*   `STAGEHAND_ARGS`: Additional arguments to pass to the Chromium instance. Multiple arguments can be separated by spaces or commas (e.g., `--user-data-dir="C:\test-profile" --no-sandbox`).
+*   `STAGEHAND_LOCALE`: Configures the browser locale (e.g., `es-ES`, `en-US`).
+*   `STAGEHAND_PERMISSIONS`: Configures browser permissions. Multiple permissions can be separated by commas (e.g., `notifications`, `geolocation`).
+*   `STAGEHAND_DOM_SETTLE_TIMEOUT`: Maximum time in milliseconds Stagehand will wait for the DOM to stabilize before performing an action.
+*   `STAGEHAND_VERBOSE`: Stagehand log detail level (0: silent, 1: error, 2: warn, 3: info, 4: debug, 5: trace).
+*   `STAGEHAND_DOWNLOADS_DIR_NAME`: Specifies the name of the directory where downloads will be saved. Relative to the server's working directory. Default is "downloads".
+*   `STAGEHAND_SCREENSHOTS_DIR_NAME`: Specifies the name of the directory where screenshots will be saved. Relative to the downloads directory. Default is "screenshots".
 
-Ejemplo de configuración en `mcp_settings.json`:
+Example configuration in `mcp_settings.json`:
 
 ```json
 {
@@ -165,7 +166,7 @@ Ejemplo de configuración en `mcp_settings.json`:
         "STAGEHAND_VIEWPORT_WIDTH": "1920",
         "STAGEHAND_VIEWPORT_HEIGHT": "1080",
         "STAGEHAND_ARGS": "--user-data-dir=\"C:\\test-profile\"",
-        "STAGEHAND_LOCALE": "es-ES",
+        "STAGEHAND_LOCALE": "en-US",
         "STAGEHAND_PERMISSIONS": "notifications,geolocation",
         "STAGEHAND_DOM_SETTLE_TIMEOUT": "45000",
         "STAGEHAND_VERBOSE": "3"
