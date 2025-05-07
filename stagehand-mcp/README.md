@@ -144,6 +144,22 @@ The tools available through this MCP server are:
         -   Triggering hover effects.
         -   Scrolling the page programmatically.
 
+## Testing
+
+A comprehensive Jest test suite has been implemented to ensure the reliability and correctness of the Stagehand MCP server. These tests cover various aspects of the server's functionality, including:
+
+*   Server lifecycle (startup, shutdown)
+*   Configuration loading and validation
+*   Stagehand instance management (creation, aliasing, and interaction with multiple instances)
+*   Functionality of individual tools
+
+### Running Tests
+
+To execute the test suite, run the following command from the `stagehand-mcp` directory:
+
+```bash
+npx jest
+```
 ## Project Structure
 
 ```
