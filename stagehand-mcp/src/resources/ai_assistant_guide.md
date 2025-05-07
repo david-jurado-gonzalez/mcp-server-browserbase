@@ -10,6 +10,7 @@ This guide helps you, an AI assistant, effectively utilize the Stagehand MCP ser
 - `stagehand_observe`: Observes the current web page to identify actionable elements (e.g., buttons, links, input fields). This tool provides a list of these elements, including their selectors and descriptions, which can then be used for precise interactions with `stagehand_act`.
 - `screenshot`: Take a screenshot of the current page.
 - `stagehand_agent_execute`: Executes a natural language instruction using the Stagehand agent.
+- `stagehand_copy_as_markdown`: Captures HTML content from the current page (from the current selection, the visible part of the page, or a specific DOM element identified by a selector) and converts it to Markdown format.
 
 ### How to use the tools:
 
@@ -26,7 +27,20 @@ This guide helps you, an AI assistant, effectively utilize the Stagehand MCP ser
   - **Using `instruction` and `schema`:** Provide a natural language `instruction` describing the data to extract (e.g., "extract the item price") and a `schema` string representing a valid JSON Schema for the expected output. The `schema` should be provided as a string representation of a JSON object. For example: `'{\"type\": \"object\", \"properties\": {\"product_name\": {\"type\": \"string\"}, \"price\": {\"type\": \"number\"}}}'`. This schema will be used to validate and structure the extracted data. Using a well-defined schema ensures that the extracted data is structured, validated, and ready for use.
 - **Debugging/Visualization:** Use `screenshot` if you need to see the current state of the page.
 - **Agent Execution:** Use `stagehand_agent_execute` with the `instruction` parameter to pass a natural language instruction directly to the Stagehand agent for execution.
-
+- **Copying Content as Markdown (`stagehand_copy_as_markdown`):** Use this tool to get a Markdown representation of parts of a web page.
+  - **Parameters:**
+    - `sourceType` (required): Specify `"selection"` to copy the current user selection, `"visiblePage"` to copy the main content of the visible page, or `"element"` to copy a specific HTML element.
+    - `selector` (optional): If `sourceType` is `"element"`, provide a CSS `selector` to identify the element you want to copy.
+  - **Example:** To copy the HTML of an element with the ID `article-body` as Markdown:
+    ```json
+    {
+      "tool_name": "stagehand_copy_as_markdown",
+      "arguments": {
+        "sourceType": "element",
+        "selector": "#article-body"
+      }
+    }
+    ```
 
 ## Available Resources:
 

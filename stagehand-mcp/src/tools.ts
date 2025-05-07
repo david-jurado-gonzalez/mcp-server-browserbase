@@ -6,10 +6,12 @@ import config from "./config.js";
 import { screenshots } from "./resources.js";
 import { drawObserveOverlay, clearOverlays } from "./utils.js";
 import { getStagehandInstance, createStagehandInstance } from "./stagehandManager.js";
+import TurndownService from 'turndown';
 
 import { Ajv } from 'ajv';
 
 const ajv = new Ajv();
+const turndownService = new TurndownService();
 
 // Define the Stagehand tools
 export const TOOLS: Tool[] = [
@@ -133,6 +135,32 @@ export const TOOLS: Tool[] = [
         alias: { type: "string", description: "Optional alias for the Stagehand instance" },
       },
       required: ["instruction"],
+    },
+  },
+  {
+    name: "stagehand_copy_as_markdown",
+    description: "Captures HTML content from the current page (selection, visible part, or a specific element) and converts it to Markdown.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sourceType: {
+          type: "string",
+          description: "The source of the HTML to convert: 'selection', 'visiblePage', or 'element'.",
+          enum: ["selection", "visiblePage", "element"],
+        },
+        selector: {
+          type: "string",
+          description: "CSS selector for the element to capture. Required if sourceType is 'element'.",
+        },
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
+      },
+      required: ["sourceType"],
+      if: {
+        properties: { sourceType: { const: "element" } },
+      },
+      then: {
+        required: ["selector"],
+      },
     },
   },
 ];
@@ -432,6 +460,76 @@ export async function handleToolCall(
           content: [{ type: "text", text: `Stagehand agent execution error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true
+        };
+      }
+
+    case "stagehand_copy_as_markdown":
+      try {
+        const sourceType = args.sourceType as "selection" | "visiblePage" | "element";
+        const selector = args.selector as string | undefined;
+
+        if (!sourceType) {
+          return {
+            content: [{ type: "text", text: "Missing required argument 'sourceType' for stagehand_copy_as_markdown." }],
+            _meta: {},
+            isError: true,
+          };
+        }
+
+        if (sourceType === "element" && !selector) {
+          return {
+            content: [{ type: "text", text: "Missing required argument 'selector' when 'sourceType' is 'element'." }],
+            _meta: {},
+            isError: true,
+          };
+        }
+
+        let htmlContent = "";
+
+        if (sourceType === "selection") {
+          htmlContent = await stagehand.page.evaluate(() => {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return "";
+            const range = selection.getRangeAt(0);
+            const div = document.createElement("div");
+            div.appendChild(range.cloneContents());
+            return div.innerHTML;
+          });
+        } else if (sourceType === "visiblePage") {
+          // Using document.body.outerHTML to get the content of the body
+          htmlContent = await stagehand.page.evaluate(() => document.body.outerHTML);
+        } else if (sourceType === "element" && selector) {
+          htmlContent = await stagehand.page.evaluate((sel) => {
+            const element = document.querySelector(sel);
+            return element ? element.outerHTML : "";
+          }, selector);
+        } else {
+          return {
+            content: [{ type: "text", text: `Invalid sourceType: ${sourceType}` }],
+            _meta: {},
+            isError: true,
+          };
+        }
+
+        if (!htmlContent) {
+          return {
+            content: [{ type: "text", text: "No HTML content found to convert." }],
+            _meta: {},
+          };
+        }
+
+        const markdown = turndownService.turndown(htmlContent);
+
+        return {
+          content: [{ type: "text", text: markdown }],
+          _meta: {},
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Copy as Markdown error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          _meta: {},
+          isError: true,
         };
       }
 

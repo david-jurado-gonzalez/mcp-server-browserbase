@@ -100,6 +100,16 @@ The tools available through this MCP server are:
         -   `instruction` (string, required): The instruction for the agent.
         -   `alias` (string, optional): The alias of the Stagehand instance to use.
 
+-   **`stagehand_copy_as_markdown`**: Captures HTML content from the current page (selection, visible part, or a specific element) and converts it to Markdown.
+    -   **Parameters:**
+        -   `sourceType` (string, required): The source of the HTML to convert. Can be one of:
+            -   `"selection"`: Captures the current user selection.
+            -   `"visiblePage"`: Captures the HTML of the visible page content (body).
+            -   `"element"`: Captures the HTML of a specific DOM element.
+        -   `selector` (string, optional): CSS selector for the target element. Required if `sourceType` is `"element"`.
+        -   `alias` (string, optional): The alias of the Stagehand instance to use.
+    -   **Humorous Use Case:** Ever wanted to send your cat a formal complaint about the quality of their naps in a well-structured Markdown format? Now you can! Navigate to your cat's favorite napping spot (if it has a webpage, that is), select the offending snoozing posture, and use `stagehand_copy_as_markdown` with `sourceType: "selection"`. The resulting Markdown can then be printed and solemnly presented. Results may vary.
+
 ## Project Structure
 
 ```
@@ -178,7 +188,8 @@ Example configuration in `mcp_settings.json`:
         "stagehand_extract",
         "stagehand_act",
         "stagehand_cachedact",
-        "stagehand_navigate"
+        "stagehand_navigate",
+        "stagehand_copy_as_markdown"
       ]
     }
   }
