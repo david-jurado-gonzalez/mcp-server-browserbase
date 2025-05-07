@@ -16,12 +16,15 @@ This guide helps you, an AI assistant, effectively utilize the Stagehand MCP ser
     - `alias` (string, optional): Alias of the Stagehand instance.
     - `clip` (object, optional): Region to capture (`{ x, y, width, height }`). Coordinates are relative to the top-left of the viewport.
   - **Use Case:** Ideal for tasks requiring visual input for AI processing, or for capturing specific parts of a page when standard element selectors are insufficient (e.g., canvas, complex UIs).
-- `stagehand_click_coordinates`: Simulates a mouse click at specified x and y coordinates within the browser viewport.
+- `stagehand_mouse_action_at_coordinates`: Simulates various mouse actions at specified coordinates or scrolls the viewport.
   - **Parameters:**
-    - `x` (number, required): X-coordinate for the click (relative to viewport top-left).
-    - `y` (number, required): Y-coordinate for the click (relative to viewport top-left).
+    - `action` (string, required): The type of mouse action: "click", "dblclick", "rightclick", "middleclick", "hover", "scroll".
+    - `x` (number, optional): X-coordinate for point-based actions (required for click, dblclick, rightclick, middleclick, hover).
+    - `y` (number, optional): Y-coordinate for point-based actions (required for click, dblclick, rightclick, middleclick, hover).
+    - `deltaX` (number, optional): Horizontal scroll amount (for "scroll" action, defaults to 0).
+    - `deltaY` (number, optional): Vertical scroll amount (for "scroll" action, defaults to 0).
     - `alias` (string, optional): Alias of the Stagehand instance.
-  - **Use Case:** Essential for interacting with non-standard elements like those in a game rendered on a `<canvas>`, or specific points in an image map where DOM selectors are not applicable. Always ensure coordinates are within the visible viewport.
+  - **Use Case:** Essential for interacting with non-standard elements (e.g., `<canvas>`), performing specific click types, hovering, or scrolling. Ensure coordinates are within the viewport for point-based actions. For "scroll", provide `deltaX` and/or `deltaY`.
 
 ### How to use the tools:
 
@@ -56,13 +59,13 @@ This guide helps you, an AI assistant, effectively utilize the Stagehand MCP ser
 - **Image-Based Interactions:**
   - When standard DOM interactions (`stagehand_act` with selectors) are difficult or impossible (e.g., inside a `<canvas>` element, a complex graphical interface, or an iframe with access restrictions), use `stagehand_capture_screenshot` to get a visual representation of the area of interest.
   - This image can then be (conceptually) processed (e.g., by a multimodal AI model if available to you, or by asking the user to identify coordinates based on the image).
-  - Once target coordinates (x, y) are determined (relative to the viewport's top-left), use `stagehand_click_coordinates` to simulate a click at that precise location.
+  - Once target coordinates (x, y) are determined (relative to the viewport's top-left), use `stagehand_mouse_action_at_coordinates` (with `action: "click"`) to simulate a click at that precise location.
   - **Example Workflow:**
     1. User task: "Click the 'Start Game' button inside the game canvas."
     2. You: Use `stagehand_capture_screenshot` (possibly with a `clip` if the button's general area is known) to get an image of the game interface.
     3. You: (If you have vision capabilities and can identify the button in the image) Determine the (x,y) coordinates of the "Start Game" button within the captured image (and thus, the viewport).
     4. You: (If you don't have vision, or need confirmation) Present the image to the user and ask them to provide the (x,y) coordinates of the button.
-    5. You: Use `stagehand_click_coordinates` with the determined `x` and `y` values.
+    5. You: Use `stagehand_mouse_action_at_coordinates` with `action: "click"`, and the determined `x` and `y` values.
 
 ## Available Resources:
 

@@ -185,16 +185,23 @@ export const TOOLS: Tool[] = [
     },
   },
   {
-    name: "stagehand_click_coordinates",
-    description: "Simulates a mouse click at the specified x and y coordinates within the current browser viewport. Coordinates are relative to the top-left of the viewport.",
+    name: "stagehand_mouse_action_at_coordinates",
+    description: "Simulates various mouse actions. For 'click', 'dblclick', 'rightclick', 'middleclick', 'hover', it acts at specified x/y coordinates. For 'scroll', it scrolls the viewport by deltaX/deltaY. Coordinates are relative to the top-left of the viewport for point-based actions.",
     inputSchema: {
       type: "object",
       properties: {
-        x: { type: "number", description: "The x-coordinate for the mouse click, relative to the top-left of the viewport." },
-        y: { type: "number", description: "The y-coordinate for the mouse click, relative to the top-left of the viewport." },
+        action: {
+          type: "string",
+          description: "The type of mouse action to perform.",
+          enum: ["click", "dblclick", "rightclick", "middleclick", "hover", "scroll"],
+        },
+        x: { type: "number", description: "The x-coordinate for point-based actions (click, dblclick, rightclick, middleclick, hover). Relative to the top-left of the viewport." },
+        y: { type: "number", description: "The y-coordinate for point-based actions (click, dblclick, rightclick, middleclick, hover). Relative to the top-left of the viewport." },
+        deltaX: { type: "number", description: "The horizontal scroll amount in pixels. Used only if action is 'scroll'. Defaults to 0 if not provided." },
+        deltaY: { type: "number", description: "The vertical scroll amount in pixels. Used only if action is 'scroll'. Defaults to 0 if not provided." },
         alias: { type: "string", description: "Optional alias for the Stagehand instance" },
       },
-      required: ["x", "y"],
+      required: ["action"],
     },
   },
 ];
@@ -611,33 +618,57 @@ export async function handleToolCall(
         };
       }
 
-    case "stagehand_click_coordinates":
+    case "stagehand_mouse_action_at_coordinates":
       try {
-        const x = args.x as number;
-        const y = args.y as number;
+        const action = args.action as string;
+        const x = typeof args.x === 'number' ? args.x : undefined;
+        const y = typeof args.y === 'number' ? args.y : undefined;
+        const deltaX = typeof args.deltaX === 'number' ? args.deltaX : undefined;
+        const deltaY = typeof args.deltaY === 'number' ? args.deltaY : undefined;
 
-        if (typeof x !== 'number' || typeof y !== 'number') {
-          return {
-            content: [{ type: "text", text: "Invalid coordinates. 'x' and 'y' must be numbers." }],
-            _meta: {},
-            isError: true,
-          };
+        if (!action) {
+          return { content: [{ type: "text", text: "Missing required argument 'action'." }], _meta: {}, isError: true };
         }
 
-        await stagehand.page.mouse.click(x, y);
+        let message = "";
 
-        return {
-          content: [{ type: "text", text: `Successfully clicked at coordinates (${x}, ${y}).` }],
-          _meta: {},
-        };
+        switch (action) {
+          case "click":
+          case "dblclick":
+          case "rightclick":
+          case "middleclick":
+          case "hover":
+            if (x === undefined || y === undefined) {
+              return { content: [{ type: "text", text: `Coordinates 'x' and 'y' must be provided as numbers for action '${action}'.` }], _meta: {}, isError: true };
+            }
+            if (action === "click") await stagehand.page.mouse.click(x, y);
+            else if (action === "dblclick") await stagehand.page.mouse.dblclick(x, y);
+            else if (action === "rightclick") await stagehand.page.mouse.click(x, y, { button: 'right' });
+            else if (action === "middleclick") await stagehand.page.mouse.click(x, y, { button: 'middle' });
+            else if (action === "hover") await stagehand.page.mouse.move(x, y);
+            message = `Successfully performed '${action}' at (${x}, ${y}).`;
+            break;
+
+          case "scroll":
+            const dX = deltaX !== undefined ? deltaX : 0;
+            const dY = deltaY !== undefined ? deltaY : 0;
+            // Ensure user provided at least one delta if action is scroll, or explicitly set both to 0.
+            if (args.deltaX === undefined && args.deltaY === undefined) {
+                 return { content: [{ type: "text", text: "For 'scroll' action, provide 'deltaX' and/or 'deltaY'. If you intend to scroll by (0,0), explicitly pass deltaX: 0 and deltaY: 0." }], _meta: {}, isError: true };
+            }
+            await stagehand.page.mouse.wheel(dX, dY);
+            message = `Successfully scrolled viewport by deltaX: ${dX}, deltaY: ${dY}.`;
+            break;
+
+          default:
+            return { content: [{ type: "text", text: `Invalid action type: '${action}'. Supported actions are: click, dblclick, rightclick, middleclick, hover, scroll.` }], _meta: {}, isError: true };
+        }
+        return { content: [{ type: "text", text: message }], _meta: {} };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        // Check for specific error messages if Playwright provides them for out-of-bounds clicks
-        // For example, Playwright might throw an error like "Node is detached" or "Node is not visible"
-        // or a more specific "Point is outside viewport" if that's the case.
-        // For now, a generic error message is returned.
+        const actionArgs = JSON.stringify({ action: args.action, x: args.x, y: args.y, deltaX: args.deltaX, deltaY: args.deltaY });
         return {
-          content: [{ type: "text", text: `Mouse click error at (${args.x}, ${args.y}): ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          content: [{ type: "text", text: `Mouse action error for ${actionArgs}: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true,
         };

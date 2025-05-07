@@ -121,13 +121,28 @@ The tools available through this MCP server are:
     -   **Output:** Returns the captured image as a base64 encoded string. This is useful for image-based interactions or visual analysis.
     -   **Note:** The coordinate system for `clip` originates at the top-left (0,0) of the current viewport.
 
--   **`stagehand_click_coordinates`**: Simulates a mouse click at the specified x and y coordinates within the current browser viewport.
+-   **`stagehand_mouse_action_at_coordinates`**: Simulates various mouse actions at specified coordinates or scrolls the viewport.
     -   **Parameters:**
-        -   `x` (number, required): The x-coordinate for the mouse click.
-        -   `y` (number, required): The y-coordinate for the mouse click.
+        -   `action` (string, required): The type of mouse action. Supported values:
+            -   `"click"`: Standard left click at (x, y).
+            -   `"dblclick"`: Double click at (x, y).
+            -   `"rightclick"`: Right mouse button click at (x, y).
+            -   `"middleclick"`: Middle mouse button click at (x, y).
+            -   `"hover"`: Mouse over/hover at (x, y).
+            -   `"scroll"`: Scrolls the viewport. Requires `deltaX` and/or `deltaY`.
+        -   `x` (number, optional): The x-coordinate for point-based actions (click, dblclick, rightclick, middleclick, hover). Required if action is one of these. Relative to the top-left of the viewport.
+        -   `y` (number, optional): The y-coordinate for point-based actions. Required if action is one of these. Relative to the top-left of the viewport.
+        -   `deltaX` (number, optional): The horizontal scroll amount in pixels. Used only if `action` is `"scroll"`. Defaults to 0.
+        -   `deltaY` (number, optional): The vertical scroll amount in pixels. Used only if `action` is `"scroll"`. Defaults to 0.
         -   `alias` (string, optional): The alias of the Stagehand instance to use.
-    -   **Critical Usage Note:** Coordinates are relative to the top-left (0,0) of the current viewport. Ensure the target coordinates are within the visible area of the page. Clicking outside the viewport may result in an error or no action.
-    -   **Use Case:** This tool is particularly useful for interacting with elements that are difficult to target with selectors, such as those within `<canvas>` elements, complex SVG graphics, or iframes where standard DOM interaction is challenging.
+    -   **Critical Usage Notes:**
+        -   For point-based actions (`click`, `dblclick`, `rightclick`, `middleclick`, `hover`), coordinates are relative to the top-left (0,0) of the current viewport. Ensure the target coordinates are within the visible area.
+        -   For `"scroll"` action, at least one of `deltaX` or `deltaY` must be provided if you intend to scroll.
+    -   **Use Cases:**
+        -   Interacting with elements difficult to target with selectors (e.g., `<canvas>`, complex SVGs).
+        -   Performing specific click types (right, middle, double).
+        -   Triggering hover effects.
+        -   Scrolling the page programmatically.
 
 ## Project Structure
 
@@ -210,7 +225,7 @@ Example configuration in `mcp_settings.json`:
         "stagehand_navigate",
         "stagehand_copy_as_markdown",
         "stagehand_capture_screenshot",
-        "stagehand_click_coordinates"
+        "stagehand_mouse_action_at_coordinates"
       ]
     }
   }
