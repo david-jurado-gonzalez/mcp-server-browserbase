@@ -110,6 +110,25 @@ The tools available through this MCP server are:
         -   `alias` (string, optional): The alias of the Stagehand instance to use.
     -   **Humorous Use Case:** Ever wanted to send your cat a formal complaint about the quality of their naps in a well-structured Markdown format? Now you can! Navigate to your cat's favorite napping spot (if it has a webpage, that is), select the offending snoozing posture, and use `stagehand_copy_as_markdown` with `sourceType: "selection"`. The resulting Markdown can then be printed and solemnly presented. Results may vary.
 
+-   **`stagehand_capture_screenshot`**: Captures a screenshot of the current browser viewport or a specified region.
+    -   **Parameters:**
+        -   `alias` (string, optional): The alias of the Stagehand instance to use.
+        -   `clip` (object, optional): An object specifying a rectangular region to capture.
+            -   `x` (number, required): The x-coordinate of the top-left corner of the clip region.
+            -   `y` (number, required): The y-coordinate of the top-left corner of the clip region.
+            -   `width` (number, required): The width of the clip region.
+            -   `height` (number, required): The height of the clip region.
+    -   **Output:** Returns the captured image as a base64 encoded string. This is useful for image-based interactions or visual analysis.
+    -   **Note:** The coordinate system for `clip` originates at the top-left (0,0) of the current viewport.
+
+-   **`stagehand_click_coordinates`**: Simulates a mouse click at the specified x and y coordinates within the current browser viewport.
+    -   **Parameters:**
+        -   `x` (number, required): The x-coordinate for the mouse click.
+        -   `y` (number, required): The y-coordinate for the mouse click.
+        -   `alias` (string, optional): The alias of the Stagehand instance to use.
+    -   **Critical Usage Note:** Coordinates are relative to the top-left (0,0) of the current viewport. Ensure the target coordinates are within the visible area of the page. Clicking outside the viewport may result in an error or no action.
+    -   **Use Case:** This tool is particularly useful for interacting with elements that are difficult to target with selectors, such as those within `<canvas>` elements, complex SVG graphics, or iframes where standard DOM interaction is challenging.
+
 ## Project Structure
 
 ```
@@ -189,7 +208,9 @@ Example configuration in `mcp_settings.json`:
         "stagehand_act",
         "stagehand_cachedact",
         "stagehand_navigate",
-        "stagehand_copy_as_markdown"
+        "stagehand_copy_as_markdown",
+        "stagehand_capture_screenshot",
+        "stagehand_click_coordinates"
       ]
     }
   }

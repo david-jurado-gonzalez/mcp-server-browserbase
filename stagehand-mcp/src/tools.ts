@@ -163,6 +163,40 @@ export const TOOLS: Tool[] = [
       },
     },
   },
+  {
+    name: "stagehand_capture_screenshot",
+    description: "Captures a screenshot of the current browser viewport or a specified region. The image is returned as a base64 encoded string.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
+        clip: {
+          type: "object",
+          description: "Optional rectangular region to capture (x, y, width, height). Coordinates are relative to the top-left of the viewport.",
+          properties: {
+            x: { type: "number", description: "X-coordinate of the top-left corner of the clip region" },
+            y: { type: "number", description: "Y-coordinate of the top-left corner of the clip region" },
+            width: { type: "number", description: "Width of the clip region" },
+            height: { type: "number", description: "Height of the clip region" },
+          },
+          required: ["x", "y", "width", "height"],
+        },
+      },
+    },
+  },
+  {
+    name: "stagehand_click_coordinates",
+    description: "Simulates a mouse click at the specified x and y coordinates within the current browser viewport. Coordinates are relative to the top-left of the viewport.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        x: { type: "number", description: "The x-coordinate for the mouse click, relative to the top-left of the viewport." },
+        y: { type: "number", description: "The y-coordinate for the mouse click, relative to the top-left of the viewport." },
+        alias: { type: "string", description: "Optional alias for the Stagehand instance" },
+      },
+      required: ["x", "y"],
+    },
+  },
 ];
 
 // Handle tool calls
@@ -528,6 +562,82 @@ export async function handleToolCall(
         const errorMsg = error instanceof Error ? error.message : String(error);
         return {
           content: [{ type: "text", text: `Copy as Markdown error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          _meta: {},
+          isError: true,
+        };
+      }
+
+    case "stagehand_capture_screenshot":
+      try {
+        const clip = args.clip as { x: number; y: number; width: number; height: number } | undefined;
+        
+        const screenshotOptions: Parameters<typeof stagehand.page.screenshot>[0] = {
+          fullPage: false, // Capture viewport by default unless clip is specified
+        };
+
+        if (clip) {
+          if (typeof clip.x !== 'number' || typeof clip.y !== 'number' || typeof clip.width !== 'number' || typeof clip.height !== 'number') {
+            return {
+              content: [{ type: "text", text: "Invalid 'clip' object. 'x', 'y', 'width', and 'height' must all be numbers." }],
+              _meta: {},
+              isError: true,
+            };
+          }
+          screenshotOptions.clip = clip;
+          // When a clip is provided, fullPage must be false (which is default or explicitly set).
+          // Playwright handles this, but good to be aware.
+        }
+
+        const screenshotBuffer = await stagehand.page.screenshot(screenshotOptions);
+        const screenshotBase64 = screenshotBuffer.toString("base64");
+
+        return {
+          content: [
+            { type: "text", text: "Screenshot captured successfully." },
+            {
+              type: "image",
+              data: screenshotBase64,
+              mimeType: "image/png",
+            },
+          ],
+          _meta: {},
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Screenshot capture error: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
+          _meta: {},
+          isError: true,
+        };
+      }
+
+    case "stagehand_click_coordinates":
+      try {
+        const x = args.x as number;
+        const y = args.y as number;
+
+        if (typeof x !== 'number' || typeof y !== 'number') {
+          return {
+            content: [{ type: "text", text: "Invalid coordinates. 'x' and 'y' must be numbers." }],
+            _meta: {},
+            isError: true,
+          };
+        }
+
+        await stagehand.page.mouse.click(x, y);
+
+        return {
+          content: [{ type: "text", text: `Successfully clicked at coordinates (${x}, ${y}).` }],
+          _meta: {},
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        // Check for specific error messages if Playwright provides them for out-of-bounds clicks
+        // For example, Playwright might throw an error like "Node is detached" or "Node is not visible"
+        // or a more specific "Point is outside viewport" if that's the case.
+        // For now, a generic error message is returned.
+        return {
+          content: [{ type: "text", text: `Mouse click error at (${args.x}, ${args.y}): ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
           _meta: {},
           isError: true,
         };
