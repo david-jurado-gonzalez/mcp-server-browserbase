@@ -1,3 +1,5 @@
 test-results/
 logs/
 .env
+cache.json
+chrome-debug-profile/
