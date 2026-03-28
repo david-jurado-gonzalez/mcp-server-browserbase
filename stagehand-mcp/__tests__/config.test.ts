@@ -1,5 +1,10 @@
 import path from 'path'; // For path.join assertions
 
+// Evitar que `.env` del disco pise process.env durante los tests
+jest.mock('dotenv', () => ({
+  config: jest.fn(),
+}));
+
 // Mock fs/promises before importing config
 const mockMkdir = jest.fn().mockResolvedValue(undefined);
 jest.mock('fs/promises', () => ({
@@ -21,6 +26,9 @@ describe('Configuration', () => {
   beforeEach(async () => {
     jest.resetModules(); // Clear module cache to re-import config with new env vars
     process.env = { ...ORIGINAL_ENV }; // Reset env for each test
+    // Aislar de credenciales y timeouts del entorno de desarrollo del host
+    delete process.env.STAGEHAND_MODEL_API_KEY;
+    delete process.env.STAGEHAND_DOM_SETTLE_TIMEOUT;
     mockMkdir.mockClear(); // Clear fs mock calls
 
     // Dynamically import config after resetting modules and env
@@ -69,17 +77,14 @@ describe('Configuration', () => {
       expect(newConfig.stagehand.localBrowserLaunchOptions!.viewport!.height).toBe(600);
     });
     
-    it('should handle invalid viewport width and height by defaulting to NaN then to defaults via parseInt logic (or check specific behavior)', async () => {
+    it('should fall back to default viewport when width/height env values are invalid', async () => {
       process.env.STAGEHAND_VIEWPORT_WIDTH = "invalid";
       process.env.STAGEHAND_VIEWPORT_HEIGHT = "invalid";
       jest.resetModules();
       const newConfig = (await import('../src/config.js')).default;
-      // parseInt("invalid", 10) is NaN. The config defaults kick in if NaN.
-      // The code is `parseInt(process.env.X || "1920", 10)`. If process.env.X is "invalid", it becomes parseInt("invalid", 10) = NaN.
-      // This test might need to be more specific about how NaN is handled or if there's a fallback in Stagehand itself.
-      // For now, we check what parseInt does.
-      expect(isNaN(newConfig.stagehand.localBrowserLaunchOptions!.viewport!.width)).toBe(true);
-      expect(isNaN(newConfig.stagehand.localBrowserLaunchOptions!.viewport!.height)).toBe(true);
+      // parseIntegerEnv devuelve el fallback si parseInt no es finito
+      expect(newConfig.stagehand.localBrowserLaunchOptions!.viewport!.width).toBe(1920);
+      expect(newConfig.stagehand.localBrowserLaunchOptions!.viewport!.height).toBe(1080);
     });
 
 
@@ -139,11 +144,11 @@ describe('Configuration', () => {
       expect(newConfig.stagehand.verbose).toBe(2);
     });
     
-    it('should handle invalid STAGEHAND_VERBOSE by defaulting to NaN then to default via parseInt', async () => {
-      process.env.STAGEHAND_VERBOSE = "true"; // "true" is not a valid number for parseInt
+    it('should fall back to default STAGEHAND_VERBOSE when the env value is not a finite integer', async () => {
+      process.env.STAGEHAND_VERBOSE = "true"; // no es un entero parseable
       jest.resetModules();
       const newConfig = (await import('../src/config.js')).default;
-      expect(newConfig.stagehand.verbose === undefined || isNaN(newConfig.stagehand.verbose)).toBe(true); // parseInt("true", 10) is NaN
+      expect(newConfig.stagehand.verbose).toBe(1);
     });
 
 

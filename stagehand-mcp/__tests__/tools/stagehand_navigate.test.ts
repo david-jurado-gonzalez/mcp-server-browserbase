@@ -39,6 +39,9 @@ const mockStagehandInstance = {
   close: jest.fn().mockResolvedValue(undefined),
 } as unknown as Stagehand; // Use 'as unknown as Stagehand' to satisfy type system with our mock shape
 
+const mockCreateStagehandInstance = jest.fn();
+const mockGetStagehandInstance = jest.fn();
+
 
 // Mock Stagehand class from @browserbasehq/stagehand
 jest.mock('@browserbasehq/stagehand', () => {
@@ -48,10 +51,9 @@ jest.mock('@browserbasehq/stagehand', () => {
 });
 
 // Mock stagehandManager
-jest.mock('../../src/stagehandManager.js', () => ({
-  createStagehandInstance: jest.fn().mockResolvedValue(mockStagehandInstance),
-  getStagehandInstance: jest.fn().mockReturnValue(mockStagehandInstance),
-  closeStagehand: jest.fn(),
+jest.mock('../../src/stagehandManager', () => ({
+  createStagehandInstance: (...args: any[]) => mockCreateStagehandInstance(...args),
+  getStagehandInstance: (...args: any[]) => mockGetStagehandInstance(...args),
 }));
 
 // Mock logging
@@ -81,9 +83,9 @@ describe('Tool: stagehand_navigate', () => {
     mockPageGoto.mockClear().mockResolvedValue({ status: () => 200 }); // Default success for goto
     mockPageObserve.mockClear().mockResolvedValue({ output: 'Observed content' });
     // Ensure createStagehandInstance returns the consistent mock for tests expecting creation
-    (stagehandManager.createStagehandInstance as jest.Mock).mockResolvedValue(mockStagehandInstance);
+    mockCreateStagehandInstance.mockResolvedValue(mockStagehandInstance);
     // Ensure getStagehandInstance returns the consistent mock, or undefined to trigger creation path
-    (stagehandManager.getStagehandInstance as jest.Mock).mockReturnValue(mockStagehandInstance);
+    mockGetStagehandInstance.mockReturnValue(mockStagehandInstance);
   });
 
   async function callNavigateTool(args: any) {
@@ -92,11 +94,11 @@ describe('Tool: stagehand_navigate', () => {
 
   it('should navigate to a valid URL using a new alias (instance created)', async () => {
     const args = { url: 'https://example.com', alias: 'navTest1' };
-    (stagehandManager.getStagehandInstance as jest.Mock).mockReturnValueOnce(undefined); // Simulate new alias, so create is called
+    mockGetStagehandInstance.mockReturnValueOnce(undefined); // Simulate new alias, so create is called
 
     const result = await callNavigateTool(args);
 
-    expect(stagehandManager.createStagehandInstance).toHaveBeenCalledWith(args.alias);
+    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(args.alias);
     expect(mockPageGoto).toHaveBeenCalledWith(args.url);
     expect(result).toEqual({
       content: [{ type: "text", text: `Successful navigation to: ${args.url}` }],
@@ -109,12 +111,12 @@ describe('Tool: stagehand_navigate', () => {
   it('should navigate to a valid URL using an existing alias', async () => {
     const args = { url: 'https://anotherexample.com', alias: 'navTestExisting' };
     // getStagehandInstance is already mocked to return mockStagehandInstance by default in beforeEach
-    (stagehandManager.createStagehandInstance as jest.Mock).mockClear(); // Ensure it's not called
+    mockCreateStagehandInstance.mockClear(); // Ensure it's not called
 
     const result = await callNavigateTool(args);
 
-    expect(stagehandManager.createStagehandInstance).not.toHaveBeenCalled();
-    expect(stagehandManager.getStagehandInstance).toHaveBeenCalledWith(args.alias);
+    expect(mockCreateStagehandInstance).not.toHaveBeenCalled();
+    expect(mockGetStagehandInstance).toHaveBeenCalledWith(args.alias);
     expect(mockPageGoto).toHaveBeenCalledWith(args.url);
     expect(result).toEqual({
       content: [{ type: "text", text: `Successful navigation to: ${args.url}` }],
@@ -124,22 +126,22 @@ describe('Tool: stagehand_navigate', () => {
 
   it('should navigate using the default alias if no alias is provided (instance created)', async () => {
     const args = { url: 'https://defaultalias.com' };
-    (stagehandManager.getStagehandInstance as jest.Mock).mockReturnValueOnce(undefined); // Simulate no existing default
+    mockGetStagehandInstance.mockReturnValueOnce(undefined); // Simulate no existing default
 
     await callNavigateTool(args);
 
-    expect(stagehandManager.createStagehandInstance).toHaveBeenCalledWith(undefined); // Default alias creation
+    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined); // Default alias creation
     expect(mockPageGoto).toHaveBeenCalledWith(args.url);
   });
   
   it('should navigate using the default alias if no alias is provided (existing default instance)', async () => {
     const args = { url: 'https://defaultalias.com' };
     // getStagehandInstance will return the mockStagehandInstance for the default case (undefined alias)
-    (stagehandManager.createStagehandInstance as jest.Mock).mockClear();
+    mockCreateStagehandInstance.mockClear();
 
     await callNavigateTool(args);
-    expect(stagehandManager.createStagehandInstance).not.toHaveBeenCalled();
-    expect(stagehandManager.getStagehandInstance).toHaveBeenCalledWith(undefined);
+    expect(mockCreateStagehandInstance).not.toHaveBeenCalled();
+    expect(mockGetStagehandInstance).toHaveBeenCalledWith(undefined);
     expect(mockPageGoto).toHaveBeenCalledWith(args.url);
   });
 
@@ -183,8 +185,8 @@ describe('Tool: stagehand_navigate', () => {
   it('should return an error if Stagehand instance cannot be created', async () => {
     const args = { url: 'https://example.com', alias: 'noInstanceCreation' };
     const instanceError = new Error("Failed to create Stagehand instance");
-    (stagehandManager.getStagehandInstance as jest.Mock).mockReturnValue(undefined); // Ensure creation path
-    (stagehandManager.createStagehandInstance as jest.Mock).mockRejectedValueOnce(instanceError);
+    mockGetStagehandInstance.mockReturnValue(undefined); // Ensure creation path
+    mockCreateStagehandInstance.mockRejectedValueOnce(instanceError);
 
     const result = await callNavigateTool(args);
     expect(result).toEqual({

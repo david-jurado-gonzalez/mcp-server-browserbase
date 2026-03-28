@@ -341,10 +341,10 @@ export async function handleToolCall(
                     // Parse the schema string as JSON.
                     schema = JSON.parse(schemaString);
 
-                    // Validate the parsed schema against the JSON Schema standard
-                    const validate = ajv.compile({}); // Use an empty schema to validate the schema itself
-                    if (!validate(schema)) {
-                        throw new Error(`Invalid JSON Schema: ${ajv.errorsText(validate.errors)}`);
+                    // Validate the parsed schema itself before passing it to Stagehand.
+                    const isValidSchema = ajv.validateSchema(schema);
+                    if (!isValidSchema) {
+                        throw new Error(`Invalid JSON Schema: ${ajv.errorsText(ajv.errors)}`);
                     }
 
                 } catch (e) {

@@ -158,8 +158,10 @@ A comprehensive Jest test suite has been implemented to ensure the reliability a
 To execute the test suite, run the following command from the `stagehand-mcp` directory:
 
 ```bash
-npx jest
+npm test
 ```
+
+You can also run Jest directly (e.g. `npx jest`) if you prefer.
 ## Project Structure
 
 ```
@@ -246,3 +248,34 @@ Example configuration in `mcp_settings.json`:
     }
   }
 }
+```
+
+---
+
+## Maintenance notes (local fork)
+
+This section summarizes recent tooling work on this fork; the detailed tool reference and setup instructions above remain the source of truth.
+
+### Current status
+
+- TypeScript build works with `npm run build`.
+- Tests run via `npm test` (Jest).
+- The Jest suite is wired so failures reflect real test logic rather than immediate module parse errors.
+- Shutdown avoids competing handlers between log flushing and closing Stagehand (see `beforeExit` in `logging.ts` and signal handlers in `index.ts`).
+
+### Config parsing
+
+- Invalid numeric env values fall back to safe defaults (no `NaN` in runtime config).
+- List-like values (`STAGEHAND_ARGS`, `STAGEHAND_PERMISSIONS`) are normalized; empty entries are dropped.
+- Stagehand is forced to `LOCAL` mode in `config.ts`.
+
+### Multi-instance behavior
+
+- `stagehand_navigate` creates a browser instance when needed.
+- If an alias already exists, navigation reuses that instance.
+- When a tool uses an alias, that alias becomes the active instance.
+- If the active alias is closed, `stagehandManager` falls back to the most recently remaining instance.
+
+### Known test debt
+
+Some tests may still fail for reasons unrelated to TypeScript compilation (mock hoisting order, assumptions about unset env vars, or assertions tied to older entrypoints). Treat failing tests as debt to fix incrementally rather than as a signal that the app code is unusable.

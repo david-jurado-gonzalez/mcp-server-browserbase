@@ -41,6 +41,15 @@ describe('Stagehand Manager Functions', () => {
   // Typed mock for Stagehand constructor
   const MockedStagehand = Stagehand as jest.MockedClass<typeof Stagehand>;
 
+  /** El mock devuelve un objeto plano; `mock.instances` es la instancia "clase", no ese objeto. */
+  function stagehandMockFromConstruction(index: number): { init: jest.Mock; close: jest.Mock } {
+    const entry = MockedStagehand.mock.results[index];
+    if (!entry || entry.type !== 'return') {
+      throw new Error(`No construction result at index ${index}`);
+    }
+    return entry.value as { init: jest.Mock; close: jest.Mock };
+  }
+
   beforeEach(() => {
     // Reset mocks for each test
     jest.clearAllMocks();
@@ -69,7 +78,7 @@ describe('Stagehand Manager Functions', () => {
       expect(instance).toBeDefined();
       expect(MockedStagehand).toHaveBeenCalledTimes(1);
       expect(MockedStagehand).toHaveBeenCalledWith(config.stagehand);
-      const stagehandMockInstance = MockedStagehand.mock.instances[0];
+      const stagehandMockInstance = stagehandMockFromConstruction(0);
       expect(stagehandMockInstance.init).toHaveBeenCalledTimes(1);
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining(`Creating and initializing Stagehand instance with alias "${alias}"`), "info");
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining(`Stagehand instance with alias "${alias}" initialized successfully.`), "info");
@@ -83,7 +92,7 @@ describe('Stagehand Manager Functions', () => {
       const instance = await stagehandManager.createStagehandInstance();
       expect(instance).toBeDefined();
       expect(MockedStagehand).toHaveBeenCalledTimes(1);
-      const stagehandMockInstance = MockedStagehand.mock.instances[0];
+      const stagehandMockInstance = stagehandMockFromConstruction(0);
       expect(stagehandMockInstance.init).toHaveBeenCalledTimes(1);
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining("No alias provided, generating default alias:"), "info");
       // Alias is generated, e.g., "1"
@@ -161,7 +170,7 @@ describe('Stagehand Manager Functions', () => {
     it('should close a specific Stagehand instance by alias and remove it', async () => {
       const alias = 'toShutdown';
       await stagehandManager.createStagehandInstance(alias);
-      const stagehandMockInstance = MockedStagehand.mock.instances[0];
+      const stagehandMockInstance = stagehandMockFromConstruction(0);
 
       await stagehandManager.closeStagehand(alias);
       expect(stagehandMockInstance.close).toHaveBeenCalledTimes(1);
@@ -177,10 +186,10 @@ describe('Stagehand Manager Functions', () => {
     });
 
     it('should close all Stagehand instances if no alias is provided', async () => {
-      const instance1 = await stagehandManager.createStagehandInstance('alias1');
-      const instance2 = await stagehandManager.createStagehandInstance('alias2');
-      const mockInstance1 = MockedStagehand.mock.instances[0];
-      const mockInstance2 = MockedStagehand.mock.instances[1];
+      await stagehandManager.createStagehandInstance('alias1');
+      await stagehandManager.createStagehandInstance('alias2');
+      const mockInstance1 = stagehandMockFromConstruction(0);
+      const mockInstance2 = stagehandMockFromConstruction(1);
 
       await stagehandManager.closeStagehand(); // No alias, close all
       expect(mockInstance1.close).toHaveBeenCalledTimes(1);

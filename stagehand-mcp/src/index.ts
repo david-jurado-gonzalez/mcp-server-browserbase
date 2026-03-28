@@ -12,7 +12,7 @@ import {
   setServerReadyForLogging,
 } from "./logging.js";
 
-async function main() {
+export async function main() {
   // Setup logging first
   ensureLogDirectory();
   setupLogRotation(); // Initial rotation check

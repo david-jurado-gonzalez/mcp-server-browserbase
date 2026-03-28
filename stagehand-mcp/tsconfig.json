@@ -11,7 +11,8 @@
     "rootDir": ".",
     "types": ["node", "jest"],
     "resolveJsonModule": true,
-    "allowJs": true
+    "allowJs": true,
+    "isolatedModules": true
   },
   "include": ["src/**/*", "__tests__/**/*"],
   "exclude": ["node_modules", "dist", "logs"]

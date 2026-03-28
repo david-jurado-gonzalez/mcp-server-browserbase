@@ -34,7 +34,7 @@ jest.mock('@modelcontextprotocol/sdk/server/index.js', () => {
 });
 
 // Mock local modules
-jest.mock('../src/tools.js', () => ({
+jest.mock('../src/tools', () => ({
   TOOLS: [{ name: 'test_tool', description: 'A test tool', arguments: {} }],
   handleToolCall: jest.fn(),
 }));
@@ -100,7 +100,7 @@ describe('createServer', () => {
 
   it('should call setServerInstance from logging module with the created server', () => {
     expect(loggingModule.setServerInstance).toHaveBeenCalledTimes(1);
-    expect(loggingModule.setServerInstance).toHaveBeenCalledWith(MockedMCPServer.mock.instances[0]);
+    expect(loggingModule.setServerInstance).toHaveBeenCalledWith(expect.objectContaining({ setRequestHandler: expect.any(Function) }));
   });
 
   it('should log that standard MCP request handlers are set up', () => {

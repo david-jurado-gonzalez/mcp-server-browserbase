@@ -223,6 +223,7 @@ export function registerExitHandlers() {
   };
 
   process.on('exit', exitHandler);
+  process.on('beforeExit', exitHandler);
   // Handle signals for graceful shutdown
   process.on('SIGINT', () => {
     exitHandler();
