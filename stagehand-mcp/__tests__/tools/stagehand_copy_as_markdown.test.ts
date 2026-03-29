@@ -173,19 +173,18 @@ describe('Tool: stagehand_copy_as_markdown', () => {
     });
   });
 
-  it('should return an error if Stagehand instance is not initialized', async () => {
+  it('should auto-create Stagehand when no instance exists', async () => {
     const args = { sourceType: 'selection' };
     mockGetStagehandInstance.mockReturnValue(undefined);
     mockCreateStagehandInstance.mockClear();
+    mockCreateStagehandInstance.mockResolvedValue(mockStagehandInstance);
+    mockPageEvaluate.mockResolvedValueOnce('<div>sel</div>');
 
     const result = await callCopyMarkdownTool(args);
 
-    expect(mockPageEvaluate).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      content: [{ type: "text", text: "Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page." }],
-      _meta: {},
-      isError: true,
-    });
+    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
+    expect(mockPageEvaluate).toHaveBeenCalled();
+    expect(result.isError).not.toBe(true);
   });
   
   // Test default alias behavior
@@ -201,14 +200,4 @@ describe('Tool: stagehand_copy_as_markdown', () => {
     expect(mockPageEvaluate).toHaveBeenCalled();
   });
   
-  it.skip('TODO: revisit whether non-navigate tools should auto-create a default Stagehand instance', async () => {
-    const args = { sourceType: 'visiblePage' };
-    mockPageEvaluate.mockResolvedValueOnce("<body>New default alias content</body>");
-    mockGetStagehandInstance.mockReturnValueOnce(undefined);
-
-    await callCopyMarkdownTool(args);
-    expect(mockGetStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockPageEvaluate).toHaveBeenCalled();
-  });
 });

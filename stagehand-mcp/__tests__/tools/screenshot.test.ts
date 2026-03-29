@@ -129,19 +129,17 @@ describe('Tool: screenshot (file saving variant)', () => {
     });
   });
 
-  it('should return an error if Stagehand instance is not initialized', async () => {
-    const args = {}; // No alias
+  it('should auto-create Stagehand when no instance exists (implicit browser for debugging)', async () => {
+    const args = {};
     mockGetStagehandInstance.mockReturnValue(undefined);
     mockCreateStagehandInstance.mockClear();
+    mockCreateStagehandInstance.mockResolvedValue(mockStagehandInstance);
 
     const result = await callScreenshotTool(args);
 
-    expect(mockPageScreenshot).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      content: [{ type: "text", text: "Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page." }],
-      _meta: {},
-      isError: true,
-    });
+    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
+    expect(mockPageScreenshot).toHaveBeenCalled();
+    expect(result.isError).not.toBe(true);
   });
   
   // Test default alias behavior
@@ -156,13 +154,4 @@ describe('Tool: screenshot (file saving variant)', () => {
     expect(mockPageScreenshot).toHaveBeenCalled();
   });
   
-  it.skip('TODO: revisit whether non-navigate tools should auto-create a default Stagehand instance', async () => {
-    const args = {}; // No alias
-    mockGetStagehandInstance.mockReturnValueOnce(undefined);
-
-    await callScreenshotTool(args);
-    expect(mockGetStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockPageScreenshot).toHaveBeenCalled();
-  });
 });

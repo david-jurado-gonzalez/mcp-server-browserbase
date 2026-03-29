@@ -1,3 +1,16 @@
+/**
+ * Definiciones MCP (`TOOLS`) y despacho {@link handleToolCall}.
+ *
+ * **Ciclo de vida del navegador**
+ * - Cualquier herramienta puede provocar la creación implícita de un {@link Stagehand} si aún no hay
+ *   instancia para el `alias` dado (o la instancia “activa”). Así el MCP sirve para depuración aunque
+ *   el cliente olvide llamar primero a `stagehand_navigate`.
+ * - Tras crear el navegador, la página puede estar en blanco hasta que se navegue; las herramientas que
+ *   necesitan DOM deben tolerar esa situación o el caller debe usar `stagehand_navigate`.
+ *
+ * **Extracción sin esquema** (`stagehand_extract` sin instruction/schema): el filtrado de líneas del body
+ * es heurístico (elimina bloques que parecen CSS) para reducir ruido; no sustituye a `extract` con schema.
+ */
 import { Stagehand } from "@browserbasehq/stagehand";
 import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { getServerInstance, operationLogs, log } from "./logging.js";
@@ -18,7 +31,7 @@ export const TOOLS: Tool[] = [
   {
     name: "stagehand_navigate",
     description:
-      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otheriwse use https://www.google.com as the starting point. The first time you access a website do observe `stagehand_observe` if there are popups with options to be clicked before launching actions (i.e.: Accpet cookies, Login screen, Disclaimer...). This can also happen after certain actions such as those that lead to another page.",
+      "Navigate to a URL in the browser. Only use this tool with URLs you're confident will work and stay up to date. Otherwise use https://www.google.com as the starting point. The first time you access a website do observe `stagehand_observe` if there are popups with options to be clicked before launching actions (i.e.: Accpet cookies, Login screen, Disclaimer...). This can also happen after certain actions such as those that lead to another page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -206,53 +219,66 @@ export const TOOLS: Tool[] = [
   },
 ];
 
-// Handle tool calls
-export async function handleToolCall(
+function initFailureResult(error: unknown): CallToolResult {
+  const errorMsg = error instanceof Error ? error.message : String(error);
+  return {
+    content: [
+      { type: "text", text: `Failed to initialize Stagehand: ${errorMsg}` },
+      { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` },
+    ],
+    _meta: {},
+    isError: true,
+  };
+}
+
+/**
+ * Obtiene la instancia Stagehand para el alias, creándola si hace falta.
+ * Permite usar screenshot/act/observe sin `stagehand_navigate` previo (útil en depuración).
+ */
+async function ensureStagehandForTool(
   name: string,
-  args: Record<string, unknown>,
-  // We remove the stagehand parameter as we will get it from the manager
-  // stagehand: Stagehand
-): Promise<CallToolResult> {
-  const alias = args.alias as string | undefined;
+  alias: string | undefined
+): Promise<{ stagehand: Stagehand } | { error: CallToolResult }> {
   let stagehand = getStagehandInstance(alias);
 
-  // If Stagehand is not initialized and the tool is not stagehand_navigate,
-  // inform the user that they must navigate first.
-  if (!stagehand && name !== "stagehand_navigate") {
-    return {
-      content: [{ type: "text", text: `Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page.` }],
-      _meta: {},
-      isError: true
-    };
-  }
-
-  // If Stagehand is not initialized and the tool is stagehand_navigate, we create a new instance.
-  if (!stagehand && name === "stagehand_navigate") {
-    try {
-      stagehand = await createStagehandInstance(alias);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-       return {
-          content: [{ type: "text", text: `Failed to initialize Stagehand: ${errorMsg}` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
-          _meta: {},
-          isError: true
-        };
+  if (stagehand) {
+    if (name === "stagehand_navigate") {
+      log(
+        `Stagehand instance with alias "${alias ?? "(active)"}" already exists. Navigating existing instance.`,
+        "info"
+      );
     }
-  } else if (stagehand && name === "stagehand_navigate") {
-     // If Stagehand instance exists and the tool is stagehand_navigate, navigate the existing instance
-     log(`Stagehand instance with alias "${alias}" already exists. Navigating existing instance.`, "info");
+    return { stagehand };
   }
 
-
-  // If Stagehand was initialized successfully (or already existed), we proceed with the tool call.
-  // If initialization failed, the previous block would have already returned an error.
-  if (!stagehand) {
-       return {
-          content: [{ type: "text", text: `An unexpected error occurred: Stagehand instance is null after initialization attempt.` }, { type: "text", text: `Operation logs:\n${operationLogs.join("\n")}` }],
-          _meta: {},
-          isError: true
-        };
+  try {
+    if (name !== "stagehand_navigate") {
+      log(
+        `No Stagehand instance for tool "${name}"; launching browser (implicit). Alias: ${alias ?? "auto"}`,
+        "info"
+      );
+    }
+    stagehand = await createStagehandInstance(alias);
+    return { stagehand };
+  } catch (error) {
+    return { error: initFailureResult(error) };
   }
+}
+
+/**
+ * Despacha una herramienta MCP: resuelve instancia Stagehand, ejecuta la rama y devuelve texto/recursos.
+ */
+export async function handleToolCall(
+  name: string,
+  args: Record<string, unknown>
+): Promise<CallToolResult> {
+  const alias = args.alias as string | undefined;
+
+  const ready = await ensureStagehandForTool(name, alias);
+  if ("error" in ready) {
+    return ready.error;
+  }
+  const { stagehand } = ready;
 
 
   switch (name) {

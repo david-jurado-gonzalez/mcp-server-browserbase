@@ -110,18 +110,6 @@ describe('Tool: stagehand_observe', () => {
     expect(mockPageObserve).toHaveBeenCalledWith({ instruction: args.instruction, returnAction: false });
   });
   
-  it.skip('TODO: revisit whether non-navigate tools should auto-create a default Stagehand instance', async () => {
-    const args = { instruction: 'Observe with new default alias' };
-    mockGetStagehandInstance.mockReturnValueOnce(undefined); // Simulate no existing default
-
-    await callObserveTool(args);
-
-    expect(mockGetStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockPageObserve).toHaveBeenCalledWith({ instruction: args.instruction, returnAction: false });
-  });
-
-
   it('should return an error if stagehand.page.observe throws an exception', async () => {
     const args = { instruction: 'Observe causing error', alias: 'observeError' };
     const observeError = new Error('Underlying observe failed');
@@ -143,23 +131,16 @@ describe('Tool: stagehand_observe', () => {
     });
   });
 
-  it('should return an error if Stagehand instance is not initialized (and tool is not navigate)', async () => {
+  it('should auto-create Stagehand when no instance exists', async () => {
     const args = { instruction: 'Observe without instance' };
     mockGetStagehandInstance.mockReturnValue(undefined);
-    // For a non-navigate tool, createStagehandInstance is not called by handleToolCall if getStagehandInstance is undefined.
-    // Instead, it returns a specific error.
     mockCreateStagehandInstance.mockClear();
-
+    mockCreateStagehandInstance.mockResolvedValue(mockStagehandInstance);
 
     const result = await callObserveTool(args);
 
-    expect(mockGetStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockCreateStagehandInstance).not.toHaveBeenCalled();
-    expect(mockPageObserve).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      content: [{ type: "text", text: `Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page.` }],
-      _meta: {},
-      isError: true,
-    });
+    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
+    expect(mockPageObserve).toHaveBeenCalledWith({ instruction: args.instruction, returnAction: false });
+    expect(result.isError).not.toBe(true);
   });
 });

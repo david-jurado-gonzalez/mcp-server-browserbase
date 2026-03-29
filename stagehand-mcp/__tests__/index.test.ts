@@ -42,12 +42,14 @@ const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(((code?: n
   throw new Error(`process.exit called with ${code}`);
 }) as any);
 
-// Import the module under test AFTER mocks are set up
-import '../src/index.js'; // Ejecuta main() al cargar
+import { main } from '../src/index.js';
 
 describe('Index (main entry point and server lifecycle)', () => {
+  beforeAll(async () => {
+    await main();
+  });
+
   beforeEach(() => {
-    // No usar clearAllMocks() aquí: borraría las llamadas capturadas durante el import inicial.
     processExitSpy.mockReset();
     processExitSpy.mockImplementation(((code?: number) => {
       throw new Error(`process.exit called with ${code}`);
@@ -69,7 +71,6 @@ describe('Index (main entry point and server lifecycle)', () => {
 
   it('should handle SIGINT for graceful shutdown', async () => {
     mockCloseStagehand.mockClear();
-    // registerExitHandlers también registra SIGINT; el de index.ts va después.
     const sigintCalls = processOnSpy.mock.calls.filter((call) => call[0] === 'SIGINT');
     const sigintHandler = sigintCalls[sigintCalls.length - 1]?.[1];
     expect(sigintHandler).toBeDefined();
@@ -99,22 +100,39 @@ describe('Index (main entry point and server lifecycle)', () => {
       expect(processExitSpy).toHaveBeenCalledWith(0);
     }
   });
+});
 
-  it.skip('should handle server setup error (e.g., createServer fails)', async () => {
-    // jest.mock está hoisteado: no se puede sustituir createServer dentro del test con resetModules
-    // de forma fiable en este entrypoint ESM. Ver unstable_mockModule / refactor de index si se
-    // quiere cubrir este caso.
-    jest.resetModules();
-    const errorCreateServer = jest.fn(() => {
-      throw new Error('createServer failed');
+describe('main() error paths (injected createServer / connect)', () => {
+  it('calls process.exit(1) when createServer throws', async () => {
+    const exitMock = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    await main({
+      createServer: () => {
+        throw new Error('createServer failed');
+      },
     });
-    jest.doMock('../src/server.js', () => ({ createServer: errorCreateServer }));
-    await import('../src/index.js');
-    expect(errorCreateServer).toHaveBeenCalled();
+    expect(mockLog).toHaveBeenCalledWith(
+      'Error during server setup or connection: createServer failed',
+      'error'
+    );
+    expect(mockCloseStagehand).toHaveBeenCalled();
+    expect(exitMock).toHaveBeenCalledWith(1);
+    exitMock.mockRestore();
   });
 
-  it.skip('should handle server connection error (server.connect fails)', async () => {
-    jest.resetModules();
-    await import('../src/index.js');
+  it('calls process.exit(1) when server.connect rejects', async () => {
+    const exitMock = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const failingServer = {
+      connect: jest.fn().mockRejectedValue(new Error('connect failed')),
+    };
+    await main({
+      createServer: () => failingServer as any,
+    });
+    expect(mockLog).toHaveBeenCalledWith(
+      'Error during server setup or connection: connect failed',
+      'error'
+    );
+    expect(mockCloseStagehand).toHaveBeenCalled();
+    expect(exitMock).toHaveBeenCalledWith(1);
+    exitMock.mockRestore();
   });
 });

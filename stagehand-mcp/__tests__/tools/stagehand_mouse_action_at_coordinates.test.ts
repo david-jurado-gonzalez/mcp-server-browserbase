@@ -159,14 +159,16 @@ describe('Tool: stagehand_mouse_action_at_coordinates', () => {
     expect(result.content[1].text).toContain("Operation logs:\nPrevious log for mouse fail");
   });
 
-  it('should return an error if Stagehand instance is not initialized', async () => {
+  it('should auto-create Stagehand when no instance exists', async () => {
     const args = { action: 'click', x: 10, y: 10 };
     mockGetStagehandInstance.mockReturnValue(undefined);
     mockCreateStagehandInstance.mockClear();
+    mockCreateStagehandInstance.mockResolvedValue(mockStagehandInstance);
 
     const result = await callMouseActionTool(args);
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toBe("Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page.");
+    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
+    expect(mockMouseClick).toHaveBeenCalled();
+    expect(result.isError).not.toBe(true);
   });
   
   // Test default alias behavior
@@ -181,13 +183,4 @@ describe('Tool: stagehand_mouse_action_at_coordinates', () => {
     expect(mockMouseMove).toHaveBeenCalledWith(args.x, args.y);
   });
   
-  it.skip('TODO: revisit whether non-navigate tools should auto-create a default Stagehand instance', async () => {
-    const args = { action: 'scroll', deltaX: 0, deltaY: 10 };
-    mockGetStagehandInstance.mockReturnValueOnce(undefined);
-
-    await callMouseActionTool(args);
-    expect(mockGetStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockMouseWheel).toHaveBeenCalledWith(0, 10);
-  });
 });

@@ -27,6 +27,10 @@ export function sanitizeMessage(message: any): string {
 }
 
 
+/**
+ * Dibuja rectángulos semitransparentes sobre elementos devueltos por `observe` (xpath o selector CSS).
+ * Los overlays son nodos `div` con `stagehandObserve="true"` insertados en `document.body`.
+ */
 export async function drawObserveOverlay(page: Page, results: ObserveResult[]) {
   // Convert single xpath to array for consistent handling
   const xpathList = results.map((result) => result.selector);
@@ -68,8 +72,11 @@ export async function drawObserveOverlay(page: Page, results: ObserveResult[]) {
   }, validXpaths);
 }
 
+/**
+ * Elimina overlays creados por {@link drawObserveOverlay}: mueve los hijos del overlay al padre
+ * y borra el `div` vacío (así no se pierde el DOM que quedó envuelto).
+ */
 export async function clearOverlays(page: Page) {
-  // remove existing stagehandObserve attributes
   await page.evaluate(() => {
     const elements = document.querySelectorAll('[stagehandObserve="true"]');
     elements.forEach((el) => {

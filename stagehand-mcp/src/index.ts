@@ -1,7 +1,17 @@
+/**
+ * Punto de entrada del servidor MCP Stagehand (stdio).
+ *
+ * - Si `STAGEHAND_MCP_UNDER_TEST=1` (Jest lo define en `__tests__/jest.setup.cjs`), **no** se llama a
+ *   {@link main} al cargar el módulo: los tests importan {@link main} y la ejecutan a mano.
+ * - En `npm start` / producción esa variable no está definida y se arranca el servidor al final de este archivo.
+ *
+ * No usamos `import.meta.url` para detectar el entrypoint: el código compilado a CJS en tests rompería con `import.meta`.
+ */
 // cd /c/Users/David/Documents/MCP/mcp-server-browserbase/stagehand-mcp && npm run build
 
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { createServer } from "./server.js";
+import { createServer as createServerDefault } from "./server.js";
 import { closeStagehand } from "./stagehandManager.js";
 import {
   log,
@@ -12,48 +22,49 @@ import {
   setServerReadyForLogging,
 } from "./logging.js";
 
-export async function main() {
-  // Setup logging first
+/** Opciones inyectables en tests (evita `jest.mock` frágil en ESM). */
+export type MainRuntimeOptions = {
+  /** Sustituye el factory del servidor MCP (p. ej. para forzar fallos). */
+  createServer?: () => Server;
+};
+
+/**
+ * Arranca logging en disco, crea el servidor MCP, conecta stdio y marca listo el canal de logs MCP.
+ *
+ * @param runtime - Solo en tests: inyecta `createServer` alternativo.
+ */
+export async function main(runtime?: MainRuntimeOptions): Promise<void> {
   ensureLogDirectory();
-  setupLogRotation(); // Initial rotation check
-  registerExitHandlers(); // Register handlers for graceful exit
-  scheduleLogRotation(); // Schedule periodic rotation
+  setupLogRotation();
+  registerExitHandlers();
+  scheduleLogRotation();
 
   log("Starting Stagehand MCP Server...", "info");
 
+  const createServerFn = runtime?.createServer ?? createServerDefault;
+
   try {
-    // Crear el servidor MCP usando la función del módulo server.ts
-    const server = createServer();
+    const server = createServerFn();
 
-    // Pasar la instancia de Stagehand al módulo server.ts
-
-    // Las herramientas y handlers estándar ahora se registran dentro de createServer en server.ts
-
-    // Configurar el cierre limpio (ya estaba, mantener)
     process.on("SIGINT", async () => {
       log("Received SIGINT. Closing Stagehand and exiting.", "info");
-      // await stagehand.close(); // Will be handled by stagehandManager
       await closeStagehand();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
       log("Received SIGTERM. Closing Stagehand and exiting.", "info");
-      // await stagehand.close(); // Will be handled by stagehandManager
       await closeStagehand();
       process.exit(0);
     });
 
-    // Conectar e iniciar el servidor
     log("Connecting transport and starting server...", "info");
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
-    // Set the flag indicating the server is ready for logging messages to client
     setServerReadyForLogging();
 
     log("🚀 Servidor MCP de Stagehand iniciado y escuchando.", "info");
-
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     log(`Error during server setup or connection: ${errorMsg}`, "error");
@@ -63,9 +74,11 @@ export async function main() {
   }
 }
 
-main().catch((error) => {
-  const errorMsg = error instanceof Error ? error.message : String(error);
-  log(`Unhandled error in main function: ${errorMsg}`, "error");
-  console.error("Unhandled error in main function:", error);
-  process.exit(1);
-});
+if (process.env.STAGEHAND_MCP_UNDER_TEST !== "1") {
+  void main().catch((error) => {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    log(`Unhandled error in main function: ${errorMsg}`, "error");
+    console.error("Unhandled error in main function:", error);
+    process.exit(1);
+  });
+}

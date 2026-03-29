@@ -1,3 +1,12 @@
+/**
+ * Logging hacia disco, stderr, buffer MCP (`operationLogs`) y notificaciones al cliente MCP.
+ *
+ * **Señales:** `registerExitHandlers` registra `SIGINT`/`SIGTERM` para vaciar la cola de logs a disco
+ * antes de salir. `index.ts` registra **otros** listeners de las mismas señales para cerrar Stagehand;
+ * en Node se ejecutan en orden de registro (primero este módulo, luego `index`).
+ *
+ * **MCP:** `sendLoggingMessage` solo se usa tras `setServerReadyForLogging()` para no spamear antes del `connect`.
+ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -125,7 +134,11 @@ export function logLineToString(logLine: LogLine): string {
   return `[${timestamp}] [${level}] ${logLine.message || ''}`;
 }
 
-// Main logging function
+/**
+ * Registra un mensaje: cola a archivo, `operationLogs`, stderr si `DEBUG` o nivel `error`, y MCP si aplica.
+ *
+ * La cola se escribe en disco con debounce (`LOG_FLUSH_INTERVAL`); en `exit`/`beforeExit` se hace flush síncrono.
+ */
 export function log(message: string, level: 'info' | 'error' | 'debug' = 'info') {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;

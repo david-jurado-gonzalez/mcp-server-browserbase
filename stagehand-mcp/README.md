@@ -276,6 +276,16 @@ This section summarizes recent tooling work on this fork; the detailed tool refe
 - When a tool uses an alias, that alias becomes the active instance.
 - If the active alias is closed, `stagehandManager` falls back to the most recently remaining instance.
 
+### Implicit browser launch (debugging)
+
+- Any tool may **create a Stagehand instance automatically** if none exists yet for the given `alias` (or the active default). This avoids hard failures when the client calls `screenshot` or `stagehand_observe` before `stagehand_navigate`.
+- After implicit launch, the tab may still be **blank** until you navigate; tools that need real DOM should call `stagehand_navigate` to your app URL.
+- If launch fails (missing model API key, bad `LOCAL_CDP_URL`, etc.), the error is the same shape as a failed explicit init.
+
+### Tests and `STAGEHAND_MCP_UNDER_TEST`
+
+- Jest sets `STAGEHAND_MCP_UNDER_TEST=1` in `__tests__/jest.setup.cjs` so importing `index.ts` does **not** auto-start `main()`; tests call `main()` explicitly and can inject `createServer` for error-path coverage.
+
 ### Known test debt
 
-Some tests may still fail for reasons unrelated to TypeScript compilation (mock hoisting order, assumptions about unset env vars, or assertions tied to older entrypoints). Treat failing tests as debt to fix incrementally rather than as a signal that the app code is unusable.
+If new tests fail after environment changes, typical causes are mock hoisting, `.env` leaking into config tests (mitigated by mocking `dotenv` in `config.test.ts`), or assumptions about unset env vars.

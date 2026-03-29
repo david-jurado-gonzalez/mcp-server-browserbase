@@ -1,3 +1,8 @@
+/**
+ * Configuración singleton: directorios de artefactos + parámetros {@link ConstructorParams} de Stagehand.
+ *
+ * Los enteros y listas desde env usan helpers para no propagar `NaN` ni entradas vacías.
+ */
 import path from "path";
 import fs from "fs/promises";
 import dotenv from "dotenv";
@@ -10,6 +15,7 @@ dotenv.config();
 const downloadsDirName = process.env.STAGEHAND_DOWNLOADS_DIR_NAME || "downloads";
 const screenshotsDirName = process.env.STAGEHAND_SCREENSHOTS_DIR_NAME || "screenshots";
 
+/** Entero desde env; si falta o no es finito, `fallback`. */
 function parseIntegerEnv(name: string, fallback: number): number {
   const rawValue = process.env[name];
   if (!rawValue) {
@@ -20,6 +26,7 @@ function parseIntegerEnv(name: string, fallback: number): number {
   return Number.isFinite(parsedValue) ? parsedValue : fallback;
 }
 
+/** Lista desde env: separadores espacio o coma; se recortan y se omiten vacíos. */
 function parseListEnv(name: string): string[] {
   const rawValue = process.env[name];
   if (!rawValue) {

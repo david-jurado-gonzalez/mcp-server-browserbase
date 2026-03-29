@@ -1,11 +1,29 @@
+/**
+ * Gestión de una o varias instancias {@link Stagehand} en el mismo proceso MCP.
+ *
+ * - Cada instancia tiene un **alias** (string). Sin alias al crear, se genera `"1"`, `"2"`, …
+ * - **`lastCreatedAlias`**: instancia considerada “activa” cuando una herramienta no pasa `alias`.
+ * - Al hacer `getStagehandInstance(alias explícito)` con una instancia existente, esa alias pasa a ser la activa.
+ * - Al **cerrar** la instancia activa, se reasigna la activa a la última clave que quede en el `Map` (orden de inserción).
+ *
+ * @see {@link handleToolCall} en `tools.ts` — crea instancias de forma implícita si hace falta (depuración).
+ */
 import { Stagehand } from "@browserbasehq/stagehand";
 import config from "./config.js";
 import { log } from "./logging.js";
 
 const stagehandInstances = new Map<string, Stagehand>();
+/** Alias de la instancia devuelta por última vez por `get`/`create` sin ambigüedad; usada cuando `alias` es `undefined`. */
 let lastCreatedAlias: string | null = null;
+/** Contador para alias numéricos autogenerados (`"1"`, `"2"`, …). */
 let instanceCounter = 0;
 
+/**
+ * Obtiene la instancia para `alias`, o la instancia activa si `alias` es `undefined`.
+ *
+ * @param alias - Si se omite, se usa `lastCreatedAlias` (si existe).
+ * @returns `undefined` si no hay instancia para ese alias / no hay activa.
+ */
 export function getStagehandInstance(alias?: string): Stagehand | undefined {
   if (alias) {
     const stagehand = stagehandInstances.get(alias);
@@ -22,6 +40,12 @@ export function getStagehandInstance(alias?: string): Stagehand | undefined {
   return undefined;
 }
 
+/**
+ * Crea (o reutiliza) un {@link Stagehand} con `config.stagehand`, llama a `init()` y lo registra.
+ *
+ * @param alias - Opcional; si falta, se asigna un alias numérico nuevo.
+ * @throws Si `init()` falla (CDP, API key, etc.).
+ */
 export async function createStagehandInstance(alias?: string): Promise<Stagehand> {
   let instanceAlias = alias;
   if (!instanceAlias) {
@@ -52,6 +76,12 @@ export async function createStagehandInstance(alias?: string): Promise<Stagehand
   }
 }
 
+/**
+ * Cierra navegadores y limpia el mapa.
+ *
+ * @param alias - Si se indica, solo esa instancia. Si no, **todas** (mapa vacío, contador a 0).
+ * Los errores en `close()` se registran pero la entrada se elimina igualmente para no dejar estado corrupto.
+ */
 export async function closeStagehand(alias?: string): Promise<void> {
   if (alias) {
     const stagehand = stagehandInstances.get(alias);

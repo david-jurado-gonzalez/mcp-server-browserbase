@@ -1,6 +1,11 @@
 /**
- * Main server logic for the Stagehand MCP server.
- * Handles creation, configuration, and request handling for the MCP server instance.
+ * Servidor MCP (SDK `Server`): registra handlers para tools, resources y prompts.
+ *
+ * **CallTool** valida el nombre contra {@link TOOLS}, vacía {@link operationLogs} por operación y delega en
+ * {@link handleToolCall}. La respuesta se serializa vía {@link sanitizeMessage} para evitar JSON no válido
+ * en el transporte.
+ *
+ * **Errores JSON-RPC:** códigos `-32601` (tool inválido), `-32603` (fallo interno).
  */
 // Import base Server class
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";

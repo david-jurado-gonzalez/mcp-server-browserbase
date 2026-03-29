@@ -167,20 +167,16 @@ describe('Tool: stagehand_extract', () => {
       expect(result.content[1].text).toContain("Operation logs:\nPrevious log for extract fail");
     });
 
-    it('should return an error if Stagehand instance is not initialized', async () => {
+    it('should auto-create Stagehand when no instance exists', async () => {
       const args = { instruction: 'Extract without instance' };
       mockGetStagehandInstance.mockReturnValue(undefined);
       mockCreateStagehandInstance.mockClear();
-
+      mockCreateStagehandInstance.mockResolvedValue(mockStagehandInstance);
 
       const result = await callExtractTool(args);
-      expect(mockPageExtract).not.toHaveBeenCalled();
-      expect(mockPageEvaluate).not.toHaveBeenCalled();
-      expect(result).toEqual({
-        content: [{ type: "text", text: "Stagehand browser is not initialized. Please use the 'stagehand_navigate' tool first to open a page." }],
-        _meta: {},
-        isError: true,
-      });
+      expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
+      expect(mockPageExtract).toHaveBeenCalledWith({ instruction: args.instruction, schema: undefined });
+      expect(result.isError).not.toBe(true);
     });
   });
   
@@ -196,13 +192,4 @@ describe('Tool: stagehand_extract', () => {
     expect(mockPageExtract).toHaveBeenCalledWith({ instruction: args.instruction, schema: undefined });
   });
   
-  it.skip('TODO: revisit whether non-navigate tools should auto-create a default Stagehand instance', async () => {
-    const args = { instruction: 'Extract with new default alias' };
-    mockGetStagehandInstance.mockReturnValueOnce(undefined);
-
-    await callExtractTool(args);
-    expect(mockGetStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockCreateStagehandInstance).toHaveBeenCalledWith(undefined);
-    expect(mockPageExtract).toHaveBeenCalledWith({ instruction: args.instruction, schema: undefined });
-  });
 });
